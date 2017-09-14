@@ -2,11 +2,10 @@
  * This code compares final hash against target
  */
 #include <stdio.h>
-#include <memory.h>
 
 #include "miner.h"
-
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 __constant__ uint32_t pTarget[8]; // 32 bytes
 

@@ -9,9 +9,9 @@ extern "C" {
 #include <unistd.h>
 }
 
-#include <miner.h>
-#include <cuda_helper.h>
-#include <cuda_vector_uint2x4.h> // todo
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #include "wildkeccak.h"
 
@@ -152,11 +152,6 @@ __noinline__ __device__ uint64_t bitselect(const uint64_t a, const uint64_t b, c
 	st4 = ROTL64(st24 ^ bc[3], 14); \
 	st3 = ROTL64(st18 ^ bc[2], 21); \
 	st3 = bitselect(st3 ^ st0, st3, st4);
-
-__device__ ulonglong4 operator^(const ulonglong4 &a, const ulonglong4 &b)
-{
-	return(make_ulonglong4(a.x ^ b.x, a.y ^ b.y, a.z ^ b.z, a.w ^ b.w));
-}
 
 #define MIX(vst) vst = vst ^ scratchpad[vst.x % scr_size] ^ scratchpad[vst.y % scr_size] ^ scratchpad[vst.z % scr_size] ^ scratchpad[vst.w % scr_size];
 

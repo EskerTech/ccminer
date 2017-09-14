@@ -15,13 +15,13 @@
 #include <stdint.h>
 #include <memory.h>
 
-#include "miner.h"
-
 extern "C" {
 #include "sph/sph_blake.h"
 }
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #ifdef __INTELLISENSE__
 #define __byte_perm(x, y, b) x

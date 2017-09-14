@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <memory.h>
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 /* try 1024 for 970+ */
 #define TPB 512

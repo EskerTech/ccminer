@@ -4,29 +4,6 @@
 #include <cuda_helper.h>
 #endif
 
-#undef ROL8
-#undef ROR8
-#undef ROL16
-
-#ifdef __CUDA_ARCH__
-__device__ __forceinline__
-uint32_t ROL8(const uint32_t a) {
-	return __byte_perm(a, 0, 0x2103);
-}
-__device__ __forceinline__
-uint32_t ROR8(const uint32_t a) {
-	return __byte_perm(a, 0, 0x0321);
-}
-__device__ __forceinline__
-uint32_t ROL16(const uint32_t a) {
-	return __byte_perm(a, 0, 0x1032);
-}
-#else
-#define ROL8(u)  ROTL32(u, 8)
-#define ROR8(u)  ROTR32(u, 8)
-#define ROL16(u) ROTL32(u,16)
-#endif
-
 __device__ uint32_t d_AES0[256] = {
 	0xA56363C6, 0x847C7CF8, 0x997777EE, 0x8D7B7BF6, 0x0DF2F2FF, 0xBD6B6BD6, 0xB16F6FDE, 0x54C5C591,
 	0x50303060, 0x03010102, 0xA96767CE, 0x7D2B2B56, 0x19FEFEE7, 0x62D7D7B5, 0xE6ABAB4D, 0x9A7676EC,

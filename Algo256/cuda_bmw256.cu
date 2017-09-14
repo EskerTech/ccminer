@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <memory.h>
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #undef SPH_ROTL32
 #define SPH_ROTL32 ROTL32

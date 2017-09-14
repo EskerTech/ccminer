@@ -14,7 +14,9 @@ extern "C" {
 #include "sph/sph_bmw.h"
 }
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 __constant__ uint64_t c_PaddedMessage80[16]; // padded message (80 bytes + padding)
 

@@ -115,48 +115,48 @@ __constant__ uint32_t midstate[8];
 
 __device__ void mycpy12(uint32_t *d, const uint32_t *s) {
 #pragma unroll 3
-	for (int k=0; k < 3; k++) d[k] = s[k];
+	for (int k = 0; k < 3; k++) d[k] = s[k];
 }
 
 __device__ void mycpy16(uint32_t *d, const uint32_t *s) {
 #pragma unroll 4
-	for (int k=0; k < 4; k++) d[k] = s[k];
+	for (int k = 0; k < 4; k++) d[k] = s[k];
 }
 
 __device__ void mycpy32(uint32_t *d, const uint32_t *s) {
 #pragma unroll 8
-	for (int k=0; k < 8; k++) d[k] = s[k];
+	for (int k = 0; k < 8; k++) d[k] = s[k];
 }
 
 __device__ void mycpy44(uint32_t *d, const uint32_t *s) {
 #pragma unroll 11
-	for (int k=0; k < 11; k++) d[k] = s[k];
+	for (int k = 0; k < 11; k++) d[k] = s[k];
 }
 
 __device__ void mycpy48(uint32_t *d, const uint32_t *s) {
 #pragma unroll 12
-	for (int k=0; k < 12; k++) d[k] = s[k];
+	for (int k = 0; k < 12; k++) d[k] = s[k];
 }
 
 __device__ void mycpy64(uint32_t *d, const uint32_t *s) {
 #pragma unroll 16
-	for (int k=0; k < 16; k++) d[k] = s[k];
+	for (int k = 0; k < 16; k++) d[k] = s[k];
 }
 
 __device__ uint32_t cuda_swab32(uint32_t x)
 {
 	return (((x << 24) & 0xff000000u) | ((x << 8) & 0x00ff0000u)
-		  | ((x >> 8) & 0x0000ff00u) | ((x >> 24) & 0x000000ffu));
+		| ((x >> 8) & 0x0000ff00u) | ((x >> 24) & 0x000000ffu));
 }
 
 __device__ void mycpy32_swab32(uint32_t *d, const uint32_t *s) {
 #pragma unroll 8
-	for (int k=0; k < 8; k++) d[k] = cuda_swab32(s[k]);
+	for (int k = 0; k < 8; k++) d[k] = cuda_swab32(s[k]);
 }
 
 __device__ void mycpy64_swab32(uint32_t *d, const uint32_t *s) {
 #pragma unroll 16
-	for (int k=0; k < 16; k++) d[k] = cuda_swab32(s[k]);
+	for (int k = 0; k < 16; k++) d[k] = cuda_swab32(s[k]);
 }
 
 __device__ void cuda_sha256_init(uint32_t *state)
@@ -165,9 +165,9 @@ __device__ void cuda_sha256_init(uint32_t *state)
 }
 
 /*
- * SHA256 block compression function.  The 256-bit state is transformed via
- * the 512-bit input block to produce a new state. Modified for lower register use.
- */
+* SHA256 block compression function.  The 256-bit state is transformed via
+* the 512-bit input block to produce a new state. Modified for lower register use.
+*/
 __device__ void cuda_sha256_transform(uint32_t *state, const uint32_t *block)
 {
 	uint32_t W[64]; // only 4 of these are accessed during each partial Mix
@@ -180,87 +180,99 @@ __device__ void cuda_sha256_transform(uint32_t *state, const uint32_t *block)
 
 	/* 2. Prepare message schedule W and Mix. */
 	mycpy16(W, block);
-	RNDr(S, W,  0); RNDr(S, W,  1); RNDr(S, W,  2); RNDr(S, W,  3);
+	RNDr(S, W, 0); RNDr(S, W, 1); RNDr(S, W, 2); RNDr(S, W, 3);
 
-	mycpy16(W+4, block+4);
-	RNDr(S, W,  4); RNDr(S, W,  5); RNDr(S, W,  6); RNDr(S, W,  7);
+	mycpy16(W + 4, block + 4);
+	RNDr(S, W, 4); RNDr(S, W, 5); RNDr(S, W, 6); RNDr(S, W, 7);
 
-	mycpy16(W+8, block+8);
-	RNDr(S, W,  8); RNDr(S, W,  9); RNDr(S, W, 10); RNDr(S, W, 11);
+	mycpy16(W + 8, block + 8);
+	RNDr(S, W, 8); RNDr(S, W, 9); RNDr(S, W, 10); RNDr(S, W, 11);
 
-	mycpy16(W+12, block+12);
+	mycpy16(W + 12, block + 12);
 	RNDr(S, W, 12); RNDr(S, W, 13); RNDr(S, W, 14); RNDr(S, W, 15);
 
 #pragma unroll 2
 	for (i = 16; i < 20; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 16); RNDr(S, W, 17); RNDr(S, W, 18); RNDr(S, W, 19);
 
 #pragma unroll 2
 	for (i = 20; i < 24; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 20); RNDr(S, W, 21); RNDr(S, W, 22); RNDr(S, W, 23);
 
 #pragma unroll 2
 	for (i = 24; i < 28; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 24); RNDr(S, W, 25); RNDr(S, W, 26); RNDr(S, W, 27);
 
 #pragma unroll 2
 	for (i = 28; i < 32; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 28); RNDr(S, W, 29); RNDr(S, W, 30); RNDr(S, W, 31);
 
 #pragma unroll 2
 	for (i = 32; i < 36; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 32); RNDr(S, W, 33); RNDr(S, W, 34); RNDr(S, W, 35);
 
 #pragma unroll 2
 	for (i = 36; i < 40; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 36); RNDr(S, W, 37); RNDr(S, W, 38); RNDr(S, W, 39);
 
 #pragma unroll 2
 	for (i = 40; i < 44; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 40); RNDr(S, W, 41); RNDr(S, W, 42); RNDr(S, W, 43);
 
 #pragma unroll 2
 	for (i = 44; i < 48; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 44); RNDr(S, W, 45); RNDr(S, W, 46); RNDr(S, W, 47);
 
 #pragma unroll 2
 	for (i = 48; i < 52; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 48); RNDr(S, W, 49); RNDr(S, W, 50); RNDr(S, W, 51);
 
 #pragma unroll 2
 	for (i = 52; i < 56; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 52); RNDr(S, W, 53); RNDr(S, W, 54); RNDr(S, W, 55);
 
 #pragma unroll 2
 	for (i = 56; i < 60; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 56); RNDr(S, W, 57); RNDr(S, W, 58); RNDr(S, W, 59);
 
 #pragma unroll 2
 	for (i = 60; i < 64; i += 2) {
-		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
-		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15]; }
+		W[i] = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
+		W[i + 1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
+	}
 	RNDr(S, W, 60); RNDr(S, W, 61); RNDr(S, W, 62); RNDr(S, W, 63);
 
 	/* 3. Mix local working variables into global state */
@@ -291,7 +303,7 @@ __device__ void cuda_HMAC_SHA256_80_init(uint32_t *tstate, uint32_t *ostate, uin
 	for (i = 0; i < 8; i++)
 		pad[i] = ihash[i] ^ 0x5c5c5c5c;
 #pragma unroll 8
-	for (i=8; i < 16; i++)
+	for (i = 8; i < 16; i++)
 		pad[i] = 0x5c5c5c5c;
 	cuda_sha256_transform(ostate, pad);
 
@@ -300,7 +312,7 @@ __device__ void cuda_HMAC_SHA256_80_init(uint32_t *tstate, uint32_t *ostate, uin
 	for (i = 0; i < 8; i++)
 		pad[i] = ihash[i] ^ 0x36363636;
 #pragma unroll 8
-	for (i=8; i < 16; i++)
+	for (i = 8; i < 16; i++)
 		pad[i] = 0x36363636;
 	cuda_sha256_transform(tstate, pad);
 }
@@ -333,7 +345,7 @@ __device__ void cuda_PBKDF2_SHA256_80_128(const uint32_t *tstate,
 
 	mycpy32(ostate2, ostate);
 	cuda_sha256_transform(ostate2, obuf);
-	mycpy32_swab32(output+8, ostate2);     // TODO: coalescing would be desired
+	mycpy32_swab32(output + 8, ostate2);     // TODO: coalescing would be desired
 
 	mycpy32(obuf, istate);
 	ibuf[4] = 3;
@@ -341,7 +353,7 @@ __device__ void cuda_PBKDF2_SHA256_80_128(const uint32_t *tstate,
 
 	mycpy32(ostate2, ostate);
 	cuda_sha256_transform(ostate2, obuf);
-	mycpy32_swab32(output+16, ostate2);    // TODO: coalescing would be desired
+	mycpy32_swab32(output + 16, ostate2);    // TODO: coalescing would be desired
 
 	mycpy32(obuf, istate);
 	ibuf[4] = 4;
@@ -349,15 +361,15 @@ __device__ void cuda_PBKDF2_SHA256_80_128(const uint32_t *tstate,
 
 	mycpy32(ostate2, ostate);
 	cuda_sha256_transform(ostate2, obuf);
-	mycpy32_swab32(output+24, ostate2);    // TODO: coalescing would be desired
+	mycpy32_swab32(output + 24, ostate2);    // TODO: coalescing would be desired
 }
 
 __global__ void cuda_pre_sha256(uint32_t g_inp[32], uint32_t g_tstate_ext[8], uint32_t g_ostate_ext[8], uint32_t nonce)
 {
-	nonce        +=       (blockIdx.x * blockDim.x) + threadIdx.x;
-	g_inp        += 32 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-	g_tstate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-	g_ostate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	nonce += (blockIdx.x * blockDim.x) + threadIdx.x;
+	g_inp += 32 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	g_tstate_ext += 8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	g_ostate_ext += 8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
 
 	uint32_t tstate[8], ostate[8];
 	mycpy32(tstate, midstate);
@@ -372,10 +384,10 @@ __global__ void cuda_pre_sha256(uint32_t g_inp[32], uint32_t g_tstate_ext[8], ui
 
 __global__ void cuda_post_sha256(uint32_t g_output[8], uint32_t g_tstate_ext[8], uint32_t g_ostate_ext[8], uint32_t g_salt_ext[32])
 {
-	g_output     +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-	g_tstate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-	g_ostate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-	g_salt_ext   += 32 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	g_output += 8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	g_tstate_ext += 8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	g_ostate_ext += 8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
+	g_salt_ext += 32 * ((blockIdx.x * blockDim.x) + threadIdx.x);
 
 	uint32_t tstate[16];
 	mycpy32(tstate, g_tstate_ext);            // TODO: coalescing would be desired
@@ -383,7 +395,7 @@ __global__ void cuda_post_sha256(uint32_t g_output[8], uint32_t g_tstate_ext[8],
 	uint32_t halfsalt[16];
 	mycpy64_swab32(halfsalt, g_salt_ext);     // TODO: coalescing would be desired
 	cuda_sha256_transform(tstate, halfsalt);
-	mycpy64_swab32(halfsalt, g_salt_ext+16);  // TODO: coalescing would be desired
+	mycpy64_swab32(halfsalt, g_salt_ext + 16);  // TODO: coalescing would be desired
 	cuda_sha256_transform(tstate, halfsalt);
 	cuda_sha256_transform(tstate, finalblk);
 
@@ -416,22 +428,22 @@ void prepare_sha256(int thr_id, uint32_t host_pdata[20], uint32_t host_midstate[
 		checkCudaErrors(cudaMemcpyToSymbol(finalblk, host_finalblk, sizeof(host_finalblk), 0, cudaMemcpyHostToDevice));
 		init[thr_id] = true;
 	}
-	checkCudaErrors(cudaMemcpyToSymbol(pdata, host_pdata, 20*sizeof(uint32_t), 0, cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpyToSymbol(midstate, host_midstate, 8*sizeof(uint32_t), 0, cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpyToSymbol(pdata, host_pdata, 20 * sizeof(uint32_t), 0, cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpyToSymbol(midstate, host_midstate, 8 * sizeof(uint32_t), 0, cudaMemcpyHostToDevice));
 }
 
 void pre_sha256(int thr_id, int stream, uint32_t nonce, int throughput)
 {
 	dim3 block(128);
-	dim3 grid((throughput+127)/128);
+	dim3 grid((throughput + 127) / 128);
 
-	cuda_pre_sha256<<<grid, block, 0, context_streams[stream][thr_id]>>>(context_idata[stream][thr_id], context_tstate[stream][thr_id], context_ostate[stream][thr_id], nonce);
+	cuda_pre_sha256 << <grid, block, 0, context_streams[stream][thr_id] >> >(context_idata[stream][thr_id], context_tstate[stream][thr_id], context_ostate[stream][thr_id], nonce);
 }
 
 void post_sha256(int thr_id, int stream, int throughput)
 {
 	dim3 block(128);
-	dim3 grid((throughput+127)/128);
+	dim3 grid((throughput + 127) / 128);
 
-	cuda_post_sha256<<<grid, block, 0, context_streams[stream][thr_id]>>>(context_hash[stream][thr_id], context_tstate[stream][thr_id], context_ostate[stream][thr_id], context_odata[stream][thr_id]);
+	cuda_post_sha256 << <grid, block, 0, context_streams[stream][thr_id] >> >(context_hash[stream][thr_id], context_tstate[stream][thr_id], context_ostate[stream][thr_id], context_odata[stream][thr_id]);
 }

@@ -4,8 +4,8 @@
  *  final touch by tpruvot for tribus - 09 2017
  */
 #include <cuda_helper.h>
-#include <cuda_vector_uint2x4.h>
 #include <cuda_vectors.h>
+#include <cuda_vector_uint2x4.h>
 
 #define INTENSIVE_GMF
 #include "tribus/cuda_echo512_aes.cuh"

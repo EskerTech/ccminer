@@ -1,6 +1,8 @@
 #pragma once
 #include <cuda_runtime.h>
 #include <miner.h>
+#include <sm_20_intrinsics.h>
+#include <device_atomic_functions.h>
 
 #ifdef __INTELLISENSE__
 /* avoid red underlining */
@@ -49,7 +51,7 @@ struct uint3  blockDim;
 #define T32(x) ((x) & C32(0xFFFFFFFF))
 
 #ifndef ROTL64
-    #if __CUDA_ARCH__ >= 350
+    #if __CUDA_ARCH__ >= 350 && defined(__CUDACC__)
         __forceinline__ __device__ uint64_t cuda_ROTL64(const uint64_t value, const int offset) {
             uint2 result;
             if(offset >= 32) {

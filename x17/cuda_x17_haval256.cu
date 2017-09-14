@@ -27,30 +27,26 @@
  *
  * ===========================(LICENSE END)=============================
  */
-#include <stdio.h>
-#include <memory.h>
+
+#define TPB 512
 
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #define F1(x6, x5, x4, x3, x2, x1, x0) \
 	(((x1) & ((x0) ^ (x4))) ^ ((x2) & (x5)) ^ ((x3) & (x6)) ^ (x0))
 
 #define F2(x6, x5, x4, x3, x2, x1, x0) \
-	(((x2) & (((x1) & ~(x3)) ^ ((x4) & (x5)) ^ (x6) ^ (x0))) \
-	^ ((x4) & ((x1) ^ (x5))) ^ ((x3 & (x5)) ^ (x0)))
+	(((x2) & (((x1) & ~(x3)) ^ ((x4) & (x5)) ^ (x6) ^ (x0))) ^ ((x4) & ((x1) ^ (x5))) ^ ((x3 & (x5)) ^ (x0)))
 
 #define F3(x6, x5, x4, x3, x2, x1, x0) \
-	(((x3) & (((x1) & (x2)) ^ (x6) ^ (x0))) \
-	^ ((x1) & (x4)) ^ ((x2) & (x5)) ^ (x0))
+	(((x3) & (((x1) & (x2)) ^ (x6) ^ (x0))) ^ ((x1) & (x4)) ^ ((x2) & (x5)) ^ (x0))
 
 #define F4(x6, x5, x4, x3, x2, x1, x0) \
-	(((x3) & (((x1) & (x2)) ^ ((x4) | (x6)) ^ (x5))) \
-	^ ((x4) & ((~(x2) & (x5)) ^ (x1) ^ (x6) ^ (x0))) \
-	^ ((x2) & (x6)) ^ (x0))
+	(((x3) & (((x1) & (x2)) ^ ((x4) | (x6)) ^ (x5))) ^ ((x4) & ((~(x2) & (x5)) ^ (x1) ^ (x6) ^ (x0))) ^ ((x2) & (x6)) ^ (x0))
 
 #define F5(x6, x5, x4, x3, x2, x1, x0) \
-	(((x0) & ~(((x1) & (x2) & (x3)) ^ (x5))) \
-	^ ((x1) & (x4)) ^ ((x2) & (x5)) ^ ((x3) & (x6)))
+	(((x0) & ~(((x1) & (x2) & (x3)) ^ (x5))) ^ ((x1) & (x4)) ^ ((x2) & (x5)) ^ ((x3) & (x6)))
 
 #define FP5_1(x6, x5, x4, x3, x2, x1, x0) \
 	F1(x3, x4, x1, x0, x5, x2, x6)
@@ -258,42 +254,62 @@
 	STEP(n, 5, s0, s7, s6, s5, s4, s3, s2, s1, in[15], 0x409F60C4); \
 }
 
-__global__ /* __launch_bounds__(256, 6) */
-void x17_haval256_gpu_hash_64(const uint32_t threads, uint64_t *g_hash, const int outlen)
+#define PASS5_final(n, in) { \
+	STEP(n, 5, s7, s6, s5, s4, s3, s2, s1, s0, in[27], 0xBA3BF050); \
+	STEP(n, 5, s6, s5, s4, s3, s2, s1, s0, s7, in[ 3], 0x7EFB2A98); \
+	STEP(n, 5, s5, s4, s3, s2, s1, s0, s7, s6, in[21], 0xA1F1651D); \
+	STEP(n, 5, s4, s3, s2, s1, s0, s7, s6, s5, in[26], 0x39AF0176); \
+	STEP(n, 5, s3, s2, s1, s0, s7, s6, s5, s4, in[17], 0x66CA593E); \
+	STEP(n, 5, s2, s1, s0, s7, s6, s5, s4, s3, in[11], 0x82430E88); \
+	STEP(n, 5, s1, s0, s7, s6, s5, s4, s3, s2, in[20], 0x8CEE8619); \
+	STEP(n, 5, s0, s7, s6, s5, s4, s3, s2, s1, in[29], 0x456F9FB4); \
+ \
+	STEP(n, 5, s7, s6, s5, s4, s3, s2, s1, s0, in[19], 0x7D84A5C3); \
+	STEP(n, 5, s6, s5, s4, s3, s2, s1, s0, s7, in[ 0], 0x3B8B5EBE); \
+	STEP(n, 5, s5, s4, s3, s2, s1, s0, s7, s6, in[12], 0xE06F75D8); \
+	STEP(n, 5, s4, s3, s2, s1, s0, s7, s6, s5, in[ 7], 0x85C12073); \
+	STEP(n, 5, s3, s2, s1, s0, s7, s6, s5, s4, in[13], 0x401A449F); \
+	STEP(n, 5, s2, s1, s0, s7, s6, s5, s4, s3, in[ 8], 0x56C16AA6); \
+	STEP(n, 5, s1, s0, s7, s6, s5, s4, s3, s2, in[31], 0x4ED3AA62); \
+	STEP(n, 5, s0, s7, s6, s5, s4, s3, s2, s1, in[10], 0x363F7706); \
+ \
+	STEP(n, 5, s7, s6, s5, s4, s3, s2, s1, s0, in[ 5], 0x1BFEDF72); \
+	STEP(n, 5, s6, s5, s4, s3, s2, s1, s0, s7, in[ 9], 0x429B023D); \
+	STEP(n, 5, s5, s4, s3, s2, s1, s0, s7, s6, in[14], 0x37D0D724); \
+	STEP(n, 5, s4, s3, s2, s1, s0, s7, s6, s5, in[30], 0xD00A1248); \
+	STEP(n, 5, s3, s2, s1, s0, s7, s6, s5, s4, in[18], 0xDB0FEAD3); \
+	STEP(n, 5, s2, s1, s0, s7, s6, s5, s4, s3, in[ 6], 0x49F1C09B); \
+	STEP(n, 5, s1, s0, s7, s6, s5, s4, s3, s2, in[28], 0x075372C9); \
+	STEP(n, 5, s0, s7, s6, s5, s4, s3, s2, s1, in[24], 0x80991B7B); \
+ \
+	STEP(n, 5, s7, s6, s5, s4, s3, s2, s1, s0, in[ 2], 0x25D479D8); \
+	STEP(n, 5, s6, s5, s4, s3, s2, s1, s0, s7, in[23], 0xF6E8DEF7); \
+}
+
+__global__ __launch_bounds__(TPB, 4)
+void x17_haval256_gpu_hash_64_final(const uint32_t threads,const uint64_t* __restrict__ g_hash,uint32_t* resNonce,const uint64_t target)
 {
-	const uint32_t thread = (blockDim.x * blockIdx.x + threadIdx.x);
+	uint32_t thread = (blockDim.x * blockIdx.x + threadIdx.x);
+
+	uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
+	const uint32_t u0 = s0 = 0x243F6A88;
+	const uint32_t u1 = s1 = 0x85A308D3;
+	const uint32_t u2 = s2 = 0x13198A2E;
+	const uint32_t u3 = s3 = 0x03707344;
+	const uint32_t u4 = s4 = 0xA4093822;
+	const uint32_t u5 = s5 = 0x299F31D0;
+	const uint32_t u6 = s6 = 0x082EFA98;
+	const uint32_t u7 = s7 = 0xEC4E6C89;
+
+	uint32_t buf[32];
 	if (thread < threads)
 	{
-		const uint64_t hashPosition = thread*8U;
-		uint64_t *pHash = &g_hash[hashPosition];
+		const uint64_t *pHash = &g_hash[thread<<3];
 
-		uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-		const uint32_t u0 = s0 = 0x243F6A88;
-		const uint32_t u1 = s1 = 0x85A308D3;
-		const uint32_t u2 = s2 = 0x13198A2E;
-		const uint32_t u3 = s3 = 0x03707344;
-		const uint32_t u4 = s4 = 0xA4093822;
-		const uint32_t u5 = s5 = 0x299F31D0;
-		const uint32_t u6 = s6 = 0x082EFA98;
-		const uint32_t u7 = s7 = 0xEC4E6C89;
-
-		union {
-			uint32_t h4[16];
-			uint64_t h8[8];
-		} hash;
-
-		#pragma unroll
-		for (int i=0; i<8; i++) {
-			hash.h8[i] = pHash[i];
+		#pragma unroll 8
+		for(int i=0;i<8;i++){
+			*(uint2*)&buf[i<<1] = __ldg((uint2*)&pHash[i]);
 		}
-
-		///////// input big /////////////////////
-
-		uint32_t buf[32];
-
-		#pragma unroll
-		for (int i=0; i<16; i++)
-			buf[i] = hash.h4[i];
 
 		buf[16] = 0x00000001;
 
@@ -309,43 +325,24 @@ void x17_haval256_gpu_hash_64(const uint32_t threads, uint64_t *g_hash, const in
 		PASS2(5, buf);
 		PASS3(5, buf);
 		PASS4(5, buf);
-		PASS5(5, buf);
+		PASS5_final(5, buf);
 
-		hash.h4[0] = s0 + u0;
-		hash.h4[1] = s1 + u1;
-		hash.h4[2] = s2 + u2;
-		hash.h4[3] = s3 + u3;
-		hash.h4[4] = s4 + u4;
-		hash.h4[5] = s5 + u5;
-		hash.h4[6] = s6 + u6;
-		hash.h4[7] = s7 + u7;
+		buf[6] = s6 + u6;
+		buf[7] = s7 + u7;
 
-		pHash[0] = hash.h8[0];
-		pHash[1] = hash.h8[1];
-		pHash[2] = hash.h8[2];
-		pHash[3] = hash.h8[3];
-
-		if (outlen == 512) {
-			pHash[4] = 0; //hash.h8[4];
-			pHash[5] = 0; //hash.h8[5];
-			pHash[6] = 0; //hash.h8[6];
-			pHash[7] = 0; //hash.h8[7];
+		if(*(uint64_t*)&buf[ 6] <= target){
+			uint32_t tmp = atomicExch(&resNonce[0], thread);
+			if (tmp != UINT32_MAX)
+				resNonce[1] = tmp;		
 		}
 	}
 }
 
 __host__
-void x17_haval256_cpu_init(int thr_id, uint32_t threads)
+void x17_haval256_cpu_hash_64_final(int thr_id, uint32_t threads, uint32_t *d_hash, uint32_t *resNonce, uint64_t target)
 {
-}
+	dim3 grid((threads + TPB-1)/TPB);
+	dim3 block(TPB);
 
-__host__
-void x17_haval256_cpu_hash_64(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_hash, const int outlen)
-{
-	const uint32_t threadsperblock = 256;
-
-	dim3 grid((threads + threadsperblock-1)/threadsperblock);
-	dim3 block(threadsperblock);
-
-	x17_haval256_gpu_hash_64 <<<grid, block>>> (threads, (uint64_t*)d_hash, outlen);
+	x17_haval256_gpu_hash_64_final <<<grid, block>>> (threads, (uint64_t*)d_hash,resNonce,target);
 }

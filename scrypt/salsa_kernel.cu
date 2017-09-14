@@ -54,7 +54,7 @@ uint32_t  h_V_extra[MAX_GPUS][TOTAL_WARP_LIMIT*64];    //       with really larg
 KernelInterface *Best_Kernel_Heuristics(cudaDeviceProp *props)
 {
 	KernelInterface *kernel = NULL;
-	uint64_t N = 1UL << (opt_nfactor+1);
+	uint64_t N = 1ULL << ((uint64_t)(opt_nfactor)+1);
 
 	if (IS_SCRYPT() || (IS_SCRYPT_JANE() && N <= 8192))
 	{
@@ -242,6 +242,9 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 		{ 0x35, 192 }, // Kepler Generation (SM 3.5) GK11x class
 		{ 0x50, 128 }, // Maxwell Generation (SM 5.0) GTX750/750Ti
 		{ 0x52, 128 }, // Maxwell Second Generation (SM 5.2) GTX980 = 2048 cores / 16 SMs - GTX970 1664 cores / 13 SMs
+		{ 0x60, 64  }, // Pascal Generation (SM 6.0) GP100 class
+        { 0x61, 128 }, // Pascal Generation (SM 6.1) GP10x class
+        { 0x62, 128 }, // Pascal Generation (SM 6.2) GP10x class
 		{ -1, -1 },
 	};
 
@@ -623,7 +626,7 @@ skip2:
 							if (cw == 80 && (i % 8 == 0 && i != kernel->max_warps_per_block()))
 								strcat(line, "\n                          ");
 						}
-						int n = strlen(line)-1; line[n++] = '|'; line[n++] = ' '; line[n++] = kMGT; line[n++] = '\0';
+						size_t n = strlen(line)-1; line[n++] = '|'; line[n++] = ' '; line[n++] = kMGT; line[n++] = '\0';
 						strcat(line, "H/s");
 						applog(LOG_DEBUG, line);
 					}

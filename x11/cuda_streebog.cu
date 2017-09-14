@@ -13,10 +13,9 @@
 // Further improved with shared memory utilization, Provos Alexis, June 2016
 
 #include <miner.h>
-
 #include <cuda_helper.h>
-#include <cuda_vector_uint2x4.h>
-#include "neoscrypt/cuda_vectors.h"
+#include "cuda_vectors.h"
+
 
 typedef unsigned char uchar;
 

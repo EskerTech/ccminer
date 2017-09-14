@@ -8,11 +8,11 @@ extern "C"
 #include "sph/sph_shavite.h"
 #include "sph/sph_simd.h"
 #include "sph/sph_keccak.h"
-
-#include "miner.h"
 }
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint32_t *d_hash[MAX_GPUS];
 

@@ -6,7 +6,8 @@
 
 //#define USE_ROT_ASM_OPT 0
 #include <cuda_helper.h>
-#include <cuda_vector_uint2x4.h>
+#include "cuda_vectors.h"
+#include "cuda_vector_uint2x4.h"
 
 #include <miner.h>
 

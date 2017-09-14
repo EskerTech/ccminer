@@ -15,16 +15,15 @@ extern "C"
 
 #include <stdio.h>
 
-extern uint32_t quark_filter_cpu_sm2(const int thr_id, const uint32_t threads, const uint32_t *inpHashes, uint32_t* d_branch2);
-extern void quark_merge_cpu_sm2(const int thr_id, const uint32_t threads, uint32_t *outpHashes, uint32_t* d_branch2);
-
 static uint32_t *d_hash[MAX_GPUS];
-static uint32_t* d_hash_br2[MAX_GPUS];  // SM 2
 
 // Speicher zur Generierung der Noncevektoren für die bedingten Hashes
 static uint32_t *d_branch1Nonces[MAX_GPUS];
 static uint32_t *d_branch2Nonces[MAX_GPUS];
 static uint32_t *d_branch3Nonces[MAX_GPUS];
+
+static uint32_t h_resNonce[MAX_GPUS][4];
+static uint32_t *d_resNonce[MAX_GPUS];
 
 // Original Quarkhash Funktion aus einem miner Quelltext
 extern "C" void quarkhash(void *state, const void *input)
@@ -104,21 +103,6 @@ extern "C" void quarkhash(void *state, const void *input)
 	memcpy(state, hash, 32);
 }
 
-#ifdef _DEBUG
-#define TRACE(algo) { \
-	if (max_nonce == 1 && pdata[19] <= 1) { \
-		uint32_t* debugbuf = NULL; \
-		cudaMallocHost(&debugbuf, 32); \
-		cudaMemcpy(debugbuf, d_hash[thr_id], 32, cudaMemcpyDeviceToHost); \
-		printf("quark %s %08x %08x %08x %08x...%08x... \n", algo, swab32(debugbuf[0]), swab32(debugbuf[1]), \
-			swab32(debugbuf[2]), swab32(debugbuf[3]), swab32(debugbuf[7])); \
-		cudaFreeHost(debugbuf); \
-	} \
-}
-#else
-#define TRACE(algo) {}
-#endif
-
 static bool init[MAX_GPUS] = { 0 };
 
 extern "C" int scanhash_quark(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
@@ -128,9 +112,12 @@ extern "C" int scanhash_quark(int thr_id, struct work* work, uint32_t max_nonce,
 	uint32_t *ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];
 
+	const uint64_t highTarget = *(uint64_t*)&ptarget[6];
+
 	int dev_id = device_map[thr_id];
-	uint32_t def_thr = 1U << 20; // 256*4096
-	uint32_t throughput = cuda_default_throughput(thr_id, def_thr);
+	uint32_t default_throughput = 1U << 22;
+	default_throughput+=3774720; //22.9
+	uint32_t throughput = cuda_default_throughput(thr_id, default_throughput);
 	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
 
 	if (opt_benchmark)
@@ -143,31 +130,21 @@ extern "C" int scanhash_quark(int thr_id, struct work* work, uint32_t max_nonce,
 			cudaDeviceReset();
 			// reduce cpu usage
 			cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
+			cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
 			CUDA_LOG_ERROR();
 		}
-		gpulog(LOG_INFO, thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
 
-		cudaGetLastError();
+		gpulog(LOG_INFO,thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
+
 		CUDA_SAFE_CALL(cudaMalloc(&d_hash[thr_id], (size_t) 64 * throughput));
 
-		quark_blake512_cpu_init(thr_id, throughput);
-		quark_groestl512_cpu_init(thr_id, throughput);
-		quark_skein512_cpu_init(thr_id, throughput);
-		quark_bmw512_cpu_init(thr_id, throughput);
-		quark_keccak512_cpu_init(thr_id, throughput);
-		quark_jh512_cpu_init(thr_id, throughput);
 		quark_compactTest_cpu_init(thr_id, throughput);
 
-		if (cuda_arch[dev_id] >= 300) {
-			cudaMalloc(&d_branch1Nonces[thr_id], sizeof(uint32_t)*throughput);
-			cudaMalloc(&d_branch2Nonces[thr_id], sizeof(uint32_t)*throughput);
-			cudaMalloc(&d_branch3Nonces[thr_id], sizeof(uint32_t)*throughput);
-		} else {
-			cudaMalloc(&d_hash_br2[thr_id], (size_t) 64 * throughput);
-		}
+		CUDA_SAFE_CALL(cudaMalloc(&d_branch1Nonces[thr_id], throughput*sizeof(uint32_t)));
+		CUDA_SAFE_CALL(cudaMalloc(&d_branch2Nonces[thr_id], throughput*sizeof(uint32_t)));
+		CUDA_SAFE_CALL(cudaMalloc(&d_branch3Nonces[thr_id], throughput*sizeof(uint32_t)));
 
-		cuda_check_cpu_init(thr_id, throughput);
-		CUDA_SAFE_CALL(cudaGetLastError());
+		CUDA_SAFE_CALL(cudaMalloc(&d_resNonce[thr_id], 4 * sizeof(uint32_t)));
 
 		init[thr_id] = true;
 	}
@@ -176,160 +153,110 @@ extern "C" int scanhash_quark(int thr_id, struct work* work, uint32_t max_nonce,
 		be32enc(&endiandata[k], pdata[k]);
 
 	quark_blake512_cpu_setBlock_80(thr_id, endiandata);
-	cuda_check_cpu_setTarget(ptarget);
-
+	
+	int rc = 0;
+	cudaMemset(d_resNonce[thr_id], 0xFFFFFFFF, 4*sizeof(uint32_t));	
 	do {
-		int order = 0;
 		uint32_t nrm1=0, nrm2=0, nrm3=0;
 
-		quark_blake512_cpu_hash_80(thr_id, throughput, pdata[19], d_hash[thr_id]); order++;
-		TRACE("blake  :");
-		quark_bmw512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-		TRACE("bmw    :");
+		quark_blake512_cpu_hash_80(thr_id, throughput, pdata[19], d_hash[thr_id]);
+		quark_bmw512_cpu_hash_64_quark(thr_id, throughput, d_hash[thr_id]);
+		
+		quark_compactTest_single_false_cpu_hash_64(thr_id, throughput, d_hash[thr_id], NULL, d_branch3Nonces[thr_id], &nrm3);
+		quark_skein512_cpu_hash_64(thr_id, nrm3, d_branch3Nonces[thr_id], d_hash[thr_id]);
+		quark_groestl512_cpu_hash_64(thr_id, nrm3, d_branch3Nonces[thr_id], d_hash[thr_id]);
+		quark_jh512_cpu_hash_64(thr_id, nrm3, d_branch3Nonces[thr_id], d_hash[thr_id]);
 
-		if (cuda_arch[dev_id] >= 300) {
+		quark_compactTest_cpu_hash_64(thr_id, nrm3, d_hash[thr_id], d_branch3Nonces[thr_id], d_branch1Nonces[thr_id], &nrm1, d_branch2Nonces[thr_id], &nrm2);
+		
+		quark_blake512_cpu_hash_64(thr_id, nrm1, d_branch1Nonces[thr_id], d_hash[thr_id]);
+		quark_bmw512_cpu_hash_64(thr_id, nrm2, d_branch2Nonces[thr_id], d_hash[thr_id]);
+		quark_keccak_skein512_cpu_hash_64(thr_id, nrm3, d_branch3Nonces[thr_id], d_hash[thr_id]);
 
-			quark_compactTest_single_false_cpu_hash_64(thr_id, throughput, pdata[19], d_hash[thr_id], NULL,
-				d_branch3Nonces[thr_id], &nrm3, order++);
+		quark_compactTest_cpu_hash_64(thr_id, nrm3, d_hash[thr_id], d_branch3Nonces[thr_id], d_branch1Nonces[thr_id], &nrm1, d_branch2Nonces[thr_id], &nrm2);
 
-			// nur den Skein Branch weiterverfolgen
-			quark_skein512_cpu_hash_64(thr_id, nrm3, pdata[19], d_branch3Nonces[thr_id], d_hash[thr_id], order++);
+		quark_keccak512_cpu_hash_64_final(thr_id, nrm1, d_branch1Nonces[thr_id], d_hash[thr_id],highTarget,&d_resNonce[thr_id][0]);
+		quark_jh512_cpu_hash_64_final(thr_id, nrm2, d_branch2Nonces[thr_id], d_hash[thr_id],highTarget,&d_resNonce[thr_id][2]);
 
-			// das ist der unbedingte Branch für Groestl512
-			quark_groestl512_cpu_hash_64(thr_id, nrm3, pdata[19], d_branch3Nonces[thr_id], d_hash[thr_id], order++);
+		cudaMemcpy(h_resNonce[thr_id], d_resNonce[thr_id], 4*sizeof(uint32_t), cudaMemcpyDeviceToHost);
 
-			// das ist der unbedingte Branch für JH512
-			quark_jh512_cpu_hash_64(thr_id, nrm3, pdata[19], d_branch3Nonces[thr_id], d_hash[thr_id], order++);
-
-			// quarkNonces in branch1 und branch2 aufsplitten gemäss if (hash[0] & 0x8)
-			quark_compactTest_cpu_hash_64(thr_id, nrm3, pdata[19], d_hash[thr_id], d_branch3Nonces[thr_id],
-				d_branch1Nonces[thr_id], &nrm1,
-				d_branch2Nonces[thr_id], &nrm2,
-				order++);
-
-			// das ist der bedingte Branch für Blake512
-			quark_blake512_cpu_hash_64(thr_id, nrm1, pdata[19], d_branch1Nonces[thr_id], d_hash[thr_id], order++);
-
-			// das ist der bedingte Branch für Bmw512
-			quark_bmw512_cpu_hash_64(thr_id, nrm2, pdata[19], d_branch2Nonces[thr_id], d_hash[thr_id], order++);
-
-			// das ist der unbedingte Branch für Keccak512
-			quark_keccak512_cpu_hash_64(thr_id, nrm3, pdata[19], d_branch3Nonces[thr_id], d_hash[thr_id], order++);
-
-			// das ist der unbedingte Branch für Skein512
-			quark_skein512_cpu_hash_64(thr_id, nrm3, pdata[19], d_branch3Nonces[thr_id], d_hash[thr_id], order++);
-
-			// quarkNonces in branch1 und branch2 aufsplitten gemäss if (hash[0] & 0x8)
-			quark_compactTest_cpu_hash_64(thr_id, nrm3, pdata[19], d_hash[thr_id], d_branch3Nonces[thr_id],
-				d_branch1Nonces[thr_id], &nrm1,
-				d_branch2Nonces[thr_id], &nrm2,
-				order++);
-
-			quark_keccak512_cpu_hash_64(thr_id, nrm1, pdata[19], d_branch1Nonces[thr_id], d_hash[thr_id], order++);
-			quark_jh512_cpu_hash_64(thr_id, nrm2, pdata[19], d_branch2Nonces[thr_id], d_hash[thr_id], order++);
-
-			work->nonces[0] = cuda_check_hash_branch(thr_id, nrm3, pdata[19], d_branch3Nonces[thr_id], d_hash[thr_id], order++);
-			work->nonces[1] = 0;
-		} else {
-			/* algo permutations are made with 2 different buffers */
-
-			quark_filter_cpu_sm2(thr_id, throughput, d_hash[thr_id], d_hash_br2[thr_id]);
-			quark_groestl512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			quark_skein512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash_br2[thr_id], order++);
-			quark_merge_cpu_sm2(thr_id, throughput, d_hash[thr_id], d_hash_br2[thr_id]);
-			TRACE("perm1  :");
-
-			quark_groestl512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			TRACE("groestl:");
-			quark_jh512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			TRACE("jh512  :");
-
-			quark_filter_cpu_sm2(thr_id, throughput, d_hash[thr_id], d_hash_br2[thr_id]);
-			quark_blake512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			quark_bmw512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash_br2[thr_id], order++);
-			quark_merge_cpu_sm2(thr_id, throughput, d_hash[thr_id], d_hash_br2[thr_id]);
-			TRACE("perm2  :");
-
-			quark_keccak512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			TRACE("keccak :");
-			quark_skein512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			TRACE("skein  :");
-
-			quark_filter_cpu_sm2(thr_id, throughput, d_hash[thr_id], d_hash_br2[thr_id]);
-			quark_keccak512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash[thr_id], order++);
-			quark_jh512_cpu_hash_64(thr_id, throughput, pdata[19], NULL, d_hash_br2[thr_id], order++);
-			quark_merge_cpu_sm2(thr_id, throughput, d_hash[thr_id], d_hash_br2[thr_id]);
-			TRACE("perm3  :");
-
-			CUDA_LOG_ERROR();
-			work->nonces[0] = cuda_check_hash(thr_id, throughput, pdata[19], d_hash[thr_id]);
-			work->nonces[1] = cuda_check_hash_suppl(thr_id, throughput, pdata[19], d_hash[thr_id], 1);
-		}
-
-		*hashes_done = pdata[19] - first_nonce + throughput;
-
-		if (work->nonces[0] != UINT32_MAX)
-		{
-			uint32_t _ALIGN(64) vhash[8];
-			be32enc(&endiandata[19], work->nonces[0]);
+		int pos = -1;
+		if (h_resNonce[thr_id][0] != UINT32_MAX)
+			pos = 0;
+		else if (h_resNonce[thr_id][2] != UINT32_MAX)
+			pos = 2;
+		
+		if (pos != -1 ){
+			const uint32_t startNounce = pdata[19];
+			uint32_t vhash[8];
+			be32enc(&endiandata[19], (startNounce+h_resNonce[thr_id][pos]));
 			quarkhash(vhash, endiandata);
 
 			if (vhash[7] <= ptarget[7] && fulltest(vhash, ptarget)) {
-				work->valid_nonces = 1;
 				work_set_target_ratio(work, vhash);
-				if (work->nonces[1] != 0) {
-					be32enc(&endiandata[19], work->nonces[1]);
-					quarkhash(vhash, endiandata);
-					bn_set_target_ratio(work, vhash, 1);
-					work->valid_nonces++;
-					pdata[19] = max(work->nonces[0], work->nonces[1]) + 1;
-				} else {
-					pdata[19] = work->nonces[0] + 1; // cursor
+				*hashes_done = pdata[19] + throughput - first_nonce;
+				pdata[19] = (startNounce+h_resNonce[thr_id][pos]);
+//				work->nonces[ 0] = pdata[19];
+				rc = 1;
+				//check for another nonce
+				for(int i=pos+1;i<4;i++){
+					if(h_resNonce[thr_id][i] != UINT32_MAX){
+						be32enc(&endiandata[19], (startNounce+h_resNonce[thr_id][i]));
+						quarkhash(vhash, endiandata);
+						if (vhash[7] <= ptarget[7] && fulltest(vhash, ptarget)) {
+//							work_set_target_ratio(work, vhash);
+							pdata[21] = (startNounce+h_resNonce[thr_id][i]);
+							if (bn_hash_target_ratio(vhash, ptarget) > work->shareratio[0]){
+								work_set_target_ratio(work, vhash);
+								xchg(pdata[19],pdata[21]);
+							}
+//							work->nonces[ 0] = pdata[21];
+//							if(!opt_quiet)
+//								applog(LOG_BLUE,"Found 2nd nonce: %08X",pdata[21]);
+							rc++;
+							return rc;
+						}else{
+							gpulog(LOG_WARNING, thr_id, "2nd nonce result for %08x does not validate on CPU!", h_resNonce[thr_id][i]);
+							applog_hash((uchar*) vhash);
+							applog_hash((uchar*) ptarget);
+							break;
+						}
+					}
 				}
-				return work->valid_nonces;
+				return rc;
 			}
-			else if (vhash[7] > ptarget[7]) {
-				gpu_increment_reject(thr_id);
-				if (!opt_quiet)
-				gpulog(LOG_WARNING, thr_id, "result for %08x does not validate on CPU!", work->nonces[0]);
-				pdata[19] = work->nonces[0] + 1;
-				continue;
+			else{
+				gpulog(LOG_WARNING, thr_id, "result for %08x does not validate on CPU!", h_resNonce[thr_id][pos]);
+				cudaMemset(d_resNonce[thr_id], 0xFFFFFFFF, 4*sizeof(uint32_t));	
+				applog_hash((uchar*) vhash);
+				applog_hash((uchar*) ptarget);
 			}
 		}
-
-		if ((uint64_t) throughput + pdata[19] >= max_nonce) {
-			pdata[19] = max_nonce;
-			break;
-		}
-
 		pdata[19] += throughput;
 
-	} while (!work_restart[thr_id].restart);
+	}while(!work_restart[thr_id].restart && ((uint64_t)max_nonce > (uint64_t)throughput + pdata[19]));
 
-	return 0;
+	*hashes_done = pdata[19] - first_nonce;
+
+	return rc;
 }
 
 // cleanup
 extern "C" void free_quark(int thr_id)
 {
-	int dev_id = device_map[thr_id];
 	if (!init[thr_id])
 		return;
 
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	cudaFree(d_hash[thr_id]);
+	cudaFree(d_resNonce[thr_id]);
+	//cudaFreeHost(h_resNonce[thr_id]);
+	
+	cudaFree(d_branch1Nonces[thr_id]);
+	cudaFree(d_branch2Nonces[thr_id]);
+	cudaFree(d_branch3Nonces[thr_id]);
 
-	if (cuda_arch[dev_id] >= 300) {
-		cudaFree(d_branch1Nonces[thr_id]);
-		cudaFree(d_branch2Nonces[thr_id]);
-		cudaFree(d_branch3Nonces[thr_id]);
-	} else {
-		cudaFree(d_hash_br2[thr_id]);
-	}
-
-	quark_blake512_cpu_free(thr_id);
-	quark_groestl512_cpu_free(thr_id);
 	quark_compactTest_cpu_free(thr_id);
 
 	cuda_check_cpu_free(thr_id);

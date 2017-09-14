@@ -3,25 +3,25 @@
 #include <stdio.h>
 #include <memory.h>
 
+#if __CUDA_ARCH__ >= 300
+// 64 Registers Variant for Compute 3.0+
+#include "quark/groestl_functions_quad.h"
+#include "quark/groestl_transf_quad.h"
+#endif
+
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #ifdef __INTELLISENSE__
 #define __CUDA_ARCH__ 500
 #define __byte_perm(x,y,n) x
 #endif
 
-#include "miner.h"
-
 __constant__ uint32_t pTarget[8]; // Single GPU
 __constant__ uint32_t groestlcoin_gpu_msg[32];
 
 static uint32_t *d_resultNonce[MAX_GPUS];
-
-#if __CUDA_ARCH__ >= 300
-// 64 Registers Variant for Compute 3.0+
-#include "quark/groestl_functions_quad.h"
-#include "quark/groestl_transf_quad.h"
-#endif
 
 #define SWAB32(x) cuda_swab32(x)
 
@@ -49,7 +49,7 @@ void groestlcoin_gpu_hash_quad(uint32_t threads, uint32_t startNounce, uint32_t 
 		uint32_t state[8];
 		for (int round=0; round<2; round++)
 		{
-			groestl512_progressMessage_quad(state, msgBitsliced);
+			groestl512_progressMessage_quad(state, msgBitsliced, threadIdx.x);
 
 			if (round < 1)
 			{
@@ -154,7 +154,7 @@ void groestlcoin_cpu_hash(int thr_id, uint32_t threads, uint32_t startNounce, ui
 	}
 
 	cudaMemset(d_resultNonce[thr_id], 0xFF, sizeof(uint32_t));
-	groestlcoin_gpu_hash_quad <<<grid, block>>> (threads, startNounce, d_resultNonce[thr_id]);
+	groestlcoin_gpu_hash_quad<<<grid, block>>>(threads, startNounce, d_resultNonce[thr_id]);
 
 	// Strategisches Sleep Kommando zur Senkung der CPU Last
 	// MyStreamSynchronize(NULL, 0, thr_id);

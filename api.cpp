@@ -90,6 +90,7 @@ static const char *MUNAVAILABLE = " - API multicast listener will not be availab
 static char *buffer = NULL;
 static time_t startup = 0;
 static int bye = 0;
+volatile float throttle = 100.0f;
 
 extern char *opt_api_bind;
 extern int opt_api_port;
@@ -100,9 +101,13 @@ extern char *opt_api_mcast_addr;
 extern char *opt_api_mcast_code;
 extern char *opt_api_mcast_des;
 extern int opt_api_mcast_port;
+extern bool global_paused;
+
+void api_set_throttle(float val);
 
 // current stratum...
 extern struct stratum_ctx stratum;
+extern uint32_t gpus_reset_flag[MAX_GPUS];
 
 // sysinfos.cpp
 extern int num_cpus;
@@ -466,6 +471,53 @@ static char *remote_seturl(char *params)
 	return buffer;
 }
 
+
+/**
+* Change throttle % (see --throttle parameter)
+* setthrottle|100|
+*/
+static char *remote_setthrottle(char *params)
+{
+	bool ret;
+	*buffer = '\0';
+
+	float val = strtof(params, NULL);
+	api_set_throttle(val);
+
+	sprintf(buffer, "%s|", "ok");
+	return buffer;
+}
+
+/**
+* Change global pause state
+* setpaused|0| or setpaused|1|
+*/
+static char *remote_setpaused(char *params)
+{
+	bool ret = true;
+	*buffer = '\0';
+	
+	if (*params == '1')
+	{
+		applog(LOG_INFO, "Setting global pause state to true");
+		global_paused = true;
+		restart_threads();
+	}
+	else if (*params == '0')
+	{
+		applog(LOG_INFO, "Setting global pause state to false");
+		global_paused = false;
+		restart_threads();
+	}
+	else
+	{
+		ret = false;
+	}
+
+	sprintf(buffer, "%s|", ret ? "ok" : "fail");
+	return buffer;
+}
+
 /**
  * Ask the miner to quit
  */
@@ -496,6 +548,8 @@ struct CMDS {
 	/* remote functions */
 	{ "seturl",  remote_seturl, true }, /* prefer switchpool, deprecated */
 	{ "switchpool", remote_switchpool, true },
+	{ "setthrottle", remote_setthrottle, true },
+	{ "setpaused", remote_setpaused, true },
 	{ "quit", remote_quit, true },
 
 	/* keep it the last */
@@ -1350,4 +1404,22 @@ void api_set_throughput(int thr_id, uint32_t throughput)
 	// to display in bench results
 	if (opt_benchmark)
 		bench_set_throughput(thr_id, throughput);
+}
+
+void api_set_throttle(float val)
+{
+	applog(LOG_INFO, "Setting throttle to %g %%", val);
+
+	if (val > 100.0f)
+		val = 100.0f;
+	if (val < 0.0f)
+		val = 0.0f;
+
+	// Calculate exp scale between 0-1
+	throttle = val;
+
+	for( int n = 0; n < MAX_GPUS; n++ )
+		gpus_reset_flag[n] = 1;
+
+	restart_threads();
 }

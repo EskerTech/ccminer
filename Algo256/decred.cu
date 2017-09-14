@@ -6,7 +6,10 @@
 
 #include <stdint.h>
 #include <memory.h>
-#include <miner.h>
+
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 extern "C" {
 #include <sph/sph_blake.h>
@@ -29,8 +32,6 @@ extern "C" void decred_hash(void *output, const void *input)
 	sph_blake256(&ctx, input, 180);
 	sph_blake256_close(&ctx, output);
 }
-
-#include <cuda_helper.h>
 
 #ifdef __INTELLISENSE__
 #define __byte_perm(x, y, b) x
@@ -358,7 +359,9 @@ extern "C" int scanhash_decred(int thr_id, struct work* work, uint32_t max_nonce
 	if (device_sm[dev_id] < 350) intensity = 22;
 
 	uint32_t throughput = cuda_default_throughput(thr_id, 1U << intensity);
+	throughput = (uint32_t)((throttle / 100) * throughput);
 	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
+
 
 	const dim3 grid((throughput + TPB-1)/(TPB));
 	const dim3 block(TPB);
@@ -386,6 +389,9 @@ extern "C" int scanhash_decred(int thr_id, struct work* work, uint32_t max_nonce
 	cudaMemset(d_resNonce[thr_id], 0x00, sizeof(uint32_t));
 
 	do {
+
+		if (throttle < 100) usleep((100.0f - throttle) * 130);
+
 		uint32_t* resNonces = h_resNonce[thr_id];
 
 		if (resNonces[0]) cudaMemset(d_resNonce[thr_id], 0x00, sizeof(uint32_t));

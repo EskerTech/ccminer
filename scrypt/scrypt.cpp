@@ -730,6 +730,9 @@ int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, unsigned 
 		cudaSetDevice(dev_id);
 
 		throughput = cuda_throughput(thr_id);
+		throughput = (uint32_t)((throttle / 100) * throughput);
+		throughput &= 0xFFFFFF00;
+
 		gpulog(LOG_INFO, thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
 
 		init[thr_id] = true;
@@ -787,6 +790,8 @@ int scanhash_scrypt(int thr_id, struct work *work, uint32_t max_nonce, unsigned 
 
 	do {
 		nonce[nxt] = n;
+
+		if (throttle < 100) usleep((100.0f - throttle) * 400);
 
 		if (sha_on_cpu)
 		{

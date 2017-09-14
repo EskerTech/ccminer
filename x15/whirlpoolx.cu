@@ -11,12 +11,11 @@ extern "C" {
 
 static uint32_t *d_hash[MAX_GPUS] = { 0 };
 
-extern void whirlpoolx_cpu_init(int thr_id, uint32_t threads);
 extern void whirlpoolx_cpu_free(int thr_id);
-extern void whirlpoolx_setBlock_80(void *pdata, const void *ptarget);
-extern uint32_t whirlpoolx_cpu_hash(int thr_id, uint32_t threads, uint32_t startNounce);
+extern void whirlpoolx_cpu_init(int thr_id, int threads);
+extern void whirlpoolx_setBlock_precompute(void *pdata, const void *ptarget,int thr_id);
+extern uint32_t cpu_whirlpoolx(int thr_id, uint32_t threads, uint32_t startNounce);
 extern void whirlpoolx_precompute(int thr_id);
-
 // CPU Hash function
 extern "C" void whirlxHash(void *state, const void *input)
 {
@@ -38,7 +37,7 @@ extern "C" void whirlxHash(void *state, const void *input)
 
 static bool init[MAX_GPUS] = { 0 };
 
-extern "C" int scanhash_whirlx(int thr_id,  struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
+extern "C" int scanhash_whirlpoolx(int thr_id,  struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
 {
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
@@ -59,7 +58,8 @@ extern "C" int scanhash_whirlx(int thr_id,  struct work* work, uint32_t max_nonc
 			cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
 			CUDA_LOG_ERROR();
 		}
-		gpulog(LOG_INFO, thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
+
+		gpulog(LOG_INFO,thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
 
 		CUDA_CALL_OR_RET_X(cudaMalloc(&d_hash[thr_id], (size_t) 64 * throughput), -1);
 
@@ -72,11 +72,10 @@ extern "C" int scanhash_whirlx(int thr_id,  struct work* work, uint32_t max_nonc
 		be32enc(&endiandata[k], pdata[k]);
 	}
 
-	whirlpoolx_setBlock_80((void*)endiandata, ptarget);
-	whirlpoolx_precompute(thr_id);
+	whirlpoolx_setBlock_precompute((void*)endiandata, ptarget,thr_id);
 
 	do {
-		uint32_t foundNonce = whirlpoolx_cpu_hash(thr_id, throughput, pdata[19]);
+		uint32_t foundNonce = cpu_whirlpoolx(thr_id, throughput, pdata[19]);
 
 		*(hashes_done) = pdata[19] - first_nonce + throughput;
 

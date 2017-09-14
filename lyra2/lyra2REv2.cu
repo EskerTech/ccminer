@@ -7,8 +7,9 @@ extern "C" {
 #include "lyra2/Lyra2.h"
 }
 
-#include <miner.h>
-#include <cuda_helper.h>
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint64_t *d_hash[MAX_GPUS];
 static uint64_t* d_matrix[MAX_GPUS];
@@ -83,6 +84,7 @@ extern "C" int scanhash_lyra2v2(int thr_id, struct work* work, uint32_t max_nonc
 	int intensity = (device_sm[dev_id] < 500) ? 18 : is_windows() ? 19 : 20;
 	if (strstr(device_name[dev_id], "GTX 10")) intensity = 20;
 	uint32_t throughput = cuda_default_throughput(dev_id, 1UL << intensity);
+	throughput = (uint32_t)((throttle / 100) * throughput);
 	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
 
 	if (opt_benchmark)
@@ -126,6 +128,8 @@ extern "C" int scanhash_lyra2v2(int thr_id, struct work* work, uint32_t max_nonc
 	bmw256_setTarget(ptarget);
 
 	do {
+		if (throttle < 100) usleep((100.0f - throttle) * 200);
+
 		int order = 0;
 
 		blake256_cpu_hash_80(thr_id, throughput, pdata[19], d_hash[thr_id], order++);

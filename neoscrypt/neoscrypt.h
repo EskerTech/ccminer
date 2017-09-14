@@ -2,7 +2,7 @@
 extern "C" {
 #endif
 
-void neoscrypt(unsigned char *output, const unsigned char *input, unsigned int profile);
+	void neoscrypt(unsigned char *output, const unsigned char *input, unsigned int profile);
 
 #if (__cplusplus)
 }
@@ -12,7 +12,7 @@ void neoscrypt(unsigned char *output, const unsigned char *input, unsigned int p
 #define SCRYPT_HASH_BLOCK_SIZE 64
 #define SCRYPT_HASH_DIGEST_SIZE 32
 
-typedef uint8_t hash_digest[SCRYPT_HASH_DIGEST_SIZE];
+	typedef uint8_t hash_digest[SCRYPT_HASH_DIGEST_SIZE];
 
 #define ROTL32(a,b) (((a) << (b)) | ((a) >> (32 - b)))
 #define ROTR32(a,b) (((a) >> (b)) | ((a) << (32 - b)))
@@ -30,4 +30,3 @@ typedef uint8_t hash_digest[SCRYPT_HASH_DIGEST_SIZE];
     U32TO8_BE((p) + 4, (uint32_t)((v)      ));
 
 #endif
-

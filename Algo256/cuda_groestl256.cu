@@ -3,7 +3,9 @@
 #define SPH_C32(x)    ((uint32_t)(x ## U))
 #define SPH_T32(x)    ((x) & SPH_C32(0xFFFFFFFF))
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint32_t *h_GNonces[MAX_GPUS];
 static uint32_t *d_GNonces[MAX_GPUS];

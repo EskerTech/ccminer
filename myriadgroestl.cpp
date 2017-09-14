@@ -40,6 +40,7 @@ int scanhash_myriad(int thr_id, struct work *work, uint32_t max_nonce, unsigned 
 	int dev_id = device_map[thr_id];
 	int intensity = (device_sm[dev_id] >= 600) ? 20 : 18;
 	uint32_t throughput = cuda_default_throughput(thr_id, 1U << intensity);
+	throughput = (uint32_t)((throttle / 100) * throughput);
 	if (init[thr_id]) throughput = min(throughput, max_nonce - start_nonce);
 
 	if (opt_benchmark)
@@ -67,6 +68,8 @@ int scanhash_myriad(int thr_id, struct work *work, uint32_t max_nonce, unsigned 
 	myriadgroestl_cpu_setBlock(thr_id, endiandata, ptarget);
 
 	do {
+		if (throttle < 100) usleep((100.0f - throttle) * 140);
+
 		memset(work->nonces, 0xff, sizeof(work->nonces));
 
 		// GPU

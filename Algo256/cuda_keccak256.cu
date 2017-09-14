@@ -5,7 +5,9 @@ extern "C" {
 #include <memory.h>
 }
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static const uint64_t host_keccak_round_constants[24] = {
 	0x0000000000000001ull, 0x0000000000008082ull,

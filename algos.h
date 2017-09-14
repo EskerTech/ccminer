@@ -132,6 +132,69 @@ static const char *algo_names[] = {
 	""
 };
 
+static const char* algo_desc[] = {
+	"Fast Blake 256 (8 rounds)",
+	"Blake 256 (SFR)",
+	"Blake2-S 256 (NEVA)",
+	"BMW 256",
+	"Hefty Bastion",
+	"X11 variant",
+	"AEON cryptonight (MEM/2)",
+	"Monero (cryptonight)",
+	"Deepcoin",
+	"Decred Blake256",
+	"Diamond-Groestl",
+	"Zcash Equihash",
+	"Freshcoin (shavite 80)",
+	"Fuguecoin",
+	"Groestlcoin",
+	"Heavycoin",
+	"Doubloons / Espers",
+	"Keccak-256 (Maxcoin)",
+	"Jackpot",
+	"JHA v8 (JackpotCoin)",
+	"LBRY Credits (Sha/Ripemd)",
+	"Joincoin",
+	"CryptoCoin",
+	"VertCoin",
+	"ZeroCoin (3rd impl)",
+	"Mjollnircoin",
+	"Myriad-Groestl",
+	"FeatherCoin, Phoenix, UFO...",
+	"NIST5 (TalkCoin)",
+	"Pentablake hash (5x Blake 512)",
+	"Quark",
+	"Qubit",
+	"Scrypt",
+	"Scrypt-jane Chacha",
+	"SHA256d (bitcoin)",
+	"SHA256 x3",
+	"SIA (Blake2B)",
+	"Sibcoin (X11+Streebog)",
+	"Skein SHA2 (Skeincoin)",
+	"Double Skein (Woodcoin)",
+	"Skein Cube Fugue Streebog",
+	"S3 (1Coin)",
+	"Machinecoin permuted x8",
+	"Timetravel-10",
+	"Denerius",
+	"Permuted x11 (Revolver)",
+	"X11 (DarkCoin)",
+	"X13 (MaruCoin)",
+	"X14",
+	"X15",
+	"X17",
+	"Blake256-8 (VNL)",
+	"Thorsriddle streebog",
+	"Old Whirlcoin (Whirlpool algo)",
+	"Whirlpool algo",
+	"WhirlpoolX",
+	"Boolberry",
+	"ZR5 (ZiftrCoin)",
+	"auto", /* reserved for multi algo */
+	""
+};
+
 // string to int/enum
 static inline int algo_to_int(char* arg)
 {
@@ -171,10 +234,10 @@ static inline int algo_to_int(char* arg)
 			i = ALGO_SHA256D;
 		else if (!strcasecmp("sha256", arg))
 			i = ALGO_SHA256D;
-		else if (!strcasecmp("thorsriddle", arg))
-			i = ALGO_VELTOR;
-		else if (!strcasecmp("timetravel10", arg))
-			i = ALGO_BITCORE;
+		//else if (!strcasecmp("thorsriddle", arg))
+		//	i = ALGO_VELTOR;
+		//else if (!strcasecmp("timetravel10", arg))
+		//	i = ALGO_BITCORE;
 		else if (!strcasecmp("whirl", arg))
 			i = ALGO_WHIRLPOOL;
 		else if (!strcasecmp("ziftr", arg))

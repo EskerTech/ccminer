@@ -6,8 +6,8 @@ extern "C" {
 }
 
 #include "miner.h"
-
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint32_t *d_hash[MAX_GPUS];
 

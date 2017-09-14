@@ -80,12 +80,20 @@ static __inline char * dirname(char *file) {
 #ifdef _MSC_VER
 # define __func__ __FUNCTION__
 # define __thread __declspec(thread)
+
+#if __CUDA_ARCH__
+#define _ALIGN(x) __align(x)__
+#else
 # define _ALIGN(x) __declspec(align(x))
+#endif
+
 #else
 # define _ALIGN(x) __attribute__ ((aligned(x)))
 /* dirname() for linux/mingw */
 #include <libgen.h>
 #endif
+
+
 
 #ifndef WIN32
 #define MAX_PATH PATH_MAX

@@ -7,7 +7,9 @@ extern "C" {
 #include "sph/sph_blake.h"
 }
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #include <memory.h>
 
@@ -60,7 +62,7 @@ static const uint32_t  c_u256[16] = {
 
 #define GS2(a,b,c,d,x) { \
 	const uint32_t idx1 = sigma[r][x]; \
-	const uint32_t idx2 = sigma[r][x+1]; \
+	const uint32_t idx2 = sigma[r][(x)+1]; \
 	v[a] += (m[idx1] ^ u256[idx2]) + v[b]; \
 	v[d] = SPH_ROTL32(v[d] ^ v[a], 16); \
 	v[c] += v[d]; \
@@ -76,7 +78,7 @@ static const uint32_t  c_u256[16] = {
 //#define ROTR32(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
 #define hostGS(a,b,c,d,x) { \
 	const uint32_t idx1 = c_sigma[r][x]; \
-	const uint32_t idx2 = c_sigma[r][x+1]; \
+	const uint32_t idx2 = c_sigma[r][(x)+1]; \
 	v[a] += (m[idx1] ^ c_u256[idx2]) + v[b]; \
 	v[d] = ROTR32(v[d] ^ v[a], 16); \
 	v[c] += v[d]; \

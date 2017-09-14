@@ -13,7 +13,7 @@
 #include <sph/blake2b.h>
 
 #include <cuda_helper.h>
-#include <cuda_vector_uint2x4.h>
+#include "cuda_vectors.h"
 
 #define TPB 512
 #define NBN 2

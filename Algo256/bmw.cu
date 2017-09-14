@@ -6,8 +6,9 @@ extern "C" {
 #include "sph/sph_bmw.h"
 }
 
-#include <miner.h>
-#include <cuda_helper.h>
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint32_t *d_hash[MAX_GPUS];
 
@@ -33,7 +34,8 @@ extern "C" void bmw_hash(void *state, const void *input)
 
 static bool init[MAX_GPUS] = { 0 };
 
-extern "C" int scanhash_bmw(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
+extern "C" 
+int scanhash_bmw(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
 {
 	uint32_t _ALIGN(64) endiandata[20];
 	uint32_t *pdata = work->data;

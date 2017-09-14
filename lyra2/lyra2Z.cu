@@ -3,8 +3,9 @@ extern "C" {
 #include "Lyra2Z.h"
 }
 
-#include <miner.h>
-#include <cuda_helper.h>
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint64_t* d_hash[MAX_GPUS];
 static uint64_t* d_matrix[MAX_GPUS];

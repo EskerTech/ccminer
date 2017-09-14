@@ -4,11 +4,14 @@
 
 #include <stdint.h>
 #include <memory.h>
-#include "miner.h"
 
 extern "C" {
 #include "sph/sph_blake.h"
 }
+
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 /* hash by cpu with blake 256 */
 extern "C" void pentablakehash(void *output, const void *input)
@@ -35,8 +38,6 @@ extern "C" void pentablakehash(void *output, const void *input)
 
 	memcpy(output, hash, 32);
 }
-
-#include "cuda_helper.h"
 
 static uint32_t *d_hash[MAX_GPUS];
 

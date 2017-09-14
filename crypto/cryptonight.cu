@@ -52,10 +52,12 @@ extern "C" int scanhash_cryptonight(int thr_id, struct work* work, uint32_t max_
 		if (device_config[thr_id]) {
 			int res = sscanf(device_config[thr_id], "%ux%u", &cn_blocks, &cn_threads);
 			throughput = cuda_default_throughput(thr_id, cn_blocks*cn_threads);
+			throughput = (uint32_t)((throttle/100)*(throttle/100) * throughput);
 			gpulog_init(LOG_INFO, thr_id, "Using %ux%u(x%d) kernel launch config, %u threads",
 				cn_blocks, cn_threads, mul, throughput);
 		} else {
 			throughput = cuda_default_throughput(thr_id, cn_blocks*cn_threads);
+			throughput = (uint32_t)((throttle / 100)*(throttle / 100) * throughput);
 			if (throughput != cn_blocks*cn_threads && cn_threads) {
 				cn_blocks = throughput / cn_threads;
 				throughput = cn_threads * cn_blocks;
@@ -104,6 +106,8 @@ extern "C" int scanhash_cryptonight(int thr_id, struct work* work, uint32_t max_
 
 	do
 	{
+		if (throttle < 100) usleep((100.0f - throttle) * 10000);
+
 		const uint32_t Htarg = ptarget[7];
 		uint32_t resNonces[2] = { UINT32_MAX, UINT32_MAX };
 

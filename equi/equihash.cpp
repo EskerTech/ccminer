@@ -44,8 +44,6 @@ extern "C" int equi_verify_sol(void * const hdr, void * const sol)
 	return res ? 1 : 0;
 }
 
-#include <cuda_helper.h>
-
 //#define EQNONCE_OFFSET 30 /* 27:34 */
 #define NONCE_OFT EQNONCE_OFFSET
 
@@ -147,6 +145,8 @@ static bool cb_cancel(int thr_id) {
 	return work_restart[thr_id].restart;
 }
 
+extern int cuda_get_arch(int thr_id);
+
 extern "C" int scanhash_equihash(int thr_id, struct work *work, uint32_t max_nonce, unsigned long *hashes_done)
 {
 	uint32_t _ALIGN(64) endiandata[35];
@@ -200,6 +200,8 @@ extern "C" int scanhash_equihash(int thr_id, struct work *work, uint32_t max_non
 	work->valid_nonces = 0;
 
 	do {
+
+		if (throttle < 100) usleep((100.0f - throttle) * 140);
 
 		try {
 

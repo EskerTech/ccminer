@@ -1,6 +1,8 @@
 #include <stdio.h>
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 static uint32_t *d_offsets1[MAX_GPUS] = { 0 };
 static uint32_t *d_offsets2[MAX_GPUS] = { 0 };

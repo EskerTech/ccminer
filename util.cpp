@@ -2137,7 +2137,7 @@ void do_gpu_tests(void)
 
 	memset(work.data, 0, sizeof(work.data));
 	work.data[0] = 0;
-	scanhash_hmq17(0, &work, 1, &done);
+	//scanhash_hmq17(0, &work, 1, &done);
 
 	free(work_restart);
 	work_restart = NULL;
@@ -2160,8 +2160,8 @@ void print_hash_tests(void)
 
 	printf(CL_WHT "CPU HASH ON EMPTY BUFFER RESULTS:" CL_N "\n");
 
-	bastionhash(&hash[0], &buf[0]);
-	printpfx("bastion", hash);
+	//bastionhash(&hash[0], &buf[0]);
+	//printpfx("bastion", hash);
 
 	blake256hash(&hash[0], &buf[0], 8);
 	printpfx("blakecoin", hash);
@@ -2188,11 +2188,11 @@ void print_hash_tests(void)
 	decred_hash(&hash[0], &buf[0]);
 	printpfx("decred", hash);
 
-	deephash(&hash[0], &buf[0]);
-	printpfx("deep", hash);
+	//deephash(&hash[0], &buf[0]);
+	//printpfx("deep", hash);
 
-	fresh_hash(&hash[0], &buf[0]);
-	printpfx("fresh", hash);
+	//fresh_hash(&hash[0], &buf[0]);
+	//printpfx("fresh", hash);
 
 	fugue256_hash(&hash[0], &buf[0], 32);
 	printpfx("fugue256", hash);
@@ -2200,14 +2200,14 @@ void print_hash_tests(void)
 	groestlhash(&hash[0], &buf[0]);
 	printpfx("groestl", hash);
 
-	heavycoin_hash(&hash[0], &buf[0], 32);
-	printpfx("heavy", hash);
+	//heavycoin_hash(&hash[0], &buf[0], 32);
+	//printpfx("heavy", hash);
 
-	hmq17hash(&hash[0], &buf[0]);
-	printpfx("hmq1725", hash);
+	//hmq17hash(&hash[0], &buf[0]);
+	//printpfx("hmq1725", hash);
 
-	jha_hash(&hash[0], &buf[0]);
-	printpfx("jha", hash);
+	//jha_hash(&hash[0], &buf[0]);
+	//printpfx("jha", hash);
 
 	keccak256_hash(&hash[0], &buf[0]);
 	printpfx("keccak", hash);
@@ -2216,8 +2216,8 @@ void print_hash_tests(void)
 	lbry_hash(&hash[0], &buf[0]);
 	printpfx("lbry", hash);
 
-	luffa_hash(&hash[0], &buf[0]);
-	printpfx("luffa", hash);
+	//luffa_hash(&hash[0], &buf[0]);
+	//printpfx("luffa", hash);
 
 	lyra2re_hash(&hash[0], &buf[0]);
 	printpfx("lyra2", hash);
@@ -2234,17 +2234,17 @@ void print_hash_tests(void)
 	neoscrypt(&hash[0], &buf[0], 80000620);
 	printpfx("neoscrypt", hash);
 
-	nist5hash(&hash[0], &buf[0]);
-	printpfx("nist5", hash);
+	//nist5hash(&hash[0], &buf[0]);
+	//printpfx("nist5", hash);
 
-	pentablakehash(&hash[0], &buf[0]);
-	printpfx("pentablake", hash);
+	//pentablakehash(&hash[0], &buf[0]);
+	//printpfx("pentablake", hash);
 
 	quarkhash(&hash[0], &buf[0]);
 	printpfx("quark", hash);
 
-	qubithash(&hash[0], &buf[0]);
-	printpfx("qubit", hash);
+	//qubithash(&hash[0], &buf[0]);
+	//printpfx("qubit", hash);
 
 	scrypthash(&hash[0], &buf[0]);
 	printpfx("scrypt", hash);
@@ -2258,8 +2258,8 @@ void print_hash_tests(void)
 	sha256t_hash(&hash[0], &buf[0]);
 	printpfx("sha256t", hash);
 
-	blake2b_hash(&hash[0], &buf[0]);
-	printpfx("sia", hash);
+	//blake2b_hash(&hash[0], &buf[0]);
+	//printpfx("sia", hash);
 
 	sibhash(&hash[0], &buf[0]);
 	printpfx("sib", hash);
@@ -2267,20 +2267,20 @@ void print_hash_tests(void)
 	skeincoinhash(&hash[0], &buf[0]);
 	printpfx("skein", hash);
 
-	skein2hash(&hash[0], &buf[0]);
-	printpfx("skein2", hash);
+	//skein2hash(&hash[0], &buf[0]);
+	//printpfx("skein2", hash);
 
-	skunk_hash(&hash[0], &buf[0]);
-	printpfx("skunk", hash);
+	//skunk_hash(&hash[0], &buf[0]);
+	//printpfx("skunk", hash);
 
-	s3hash(&hash[0], &buf[0]);
-	printpfx("S3", hash);
+	//s3hash(&hash[0], &buf[0]);
+	//printpfx("S3", hash);
 
-	timetravel_hash(&hash[0], &buf[0]);
-	printpfx("timetravel", hash);
+	//timetravel_hash(&hash[0], &buf[0]);
+	//printpfx("timetravel", hash);
 
-	bitcore_hash(&hash[0], &buf[0]);
-	printpfx("bitcore", hash);
+	//bitcore_hash(&hash[0], &buf[0]);
+	//printpfx("bitcore", hash);
 
 	blake256hash(&hash[0], &buf[0], 8);
 	printpfx("vanilla", hash);
@@ -2288,11 +2288,11 @@ void print_hash_tests(void)
 	tribus_hash(&hash[0], &buf[0]);
 	printpfx("tribus", hash);
 
-	veltorhash(&hash[0], &buf[0]);
-	printpfx("veltor", hash);
+	//veltorhash(&hash[0], &buf[0]);
+	//printpfx("veltor", hash);
 
-	wcoinhash(&hash[0], &buf[0]);
-	printpfx("whirlpool", hash);
+	//wcoinhash(&hash[0], &buf[0]);
+	//printpfx("whirlpool", hash);
 
 	//whirlxHash(&hash[0], &buf[0]);
 	//printpfx("whirlpoolx", hash);
@@ -2316,9 +2316,9 @@ void print_hash_tests(void)
 	printpfx("X17", hash);
 
 	//memcpy(buf, zrtest, 80);
-	zr5hash(&hash[0], &buf[0]);
+	//zr5hash(&hash[0], &buf[0]);
 	//zr5hash_pok(&hash[0], (uint32_t*) &buf[0]);
-	printpfx("ZR5", hash);
+	//printpfx("ZR5", hash);
 
 	printf("\n");
 

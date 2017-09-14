@@ -10,6 +10,11 @@
 #include <cuda_helper.h>
 #include <miner.h>
 
+#define AS_U32(addr) *((uint32_t*)(addr))
+#define AS_UINT2(addr) *((uint2*)(addr))
+#define AS_UINT4(addr) *((uint4*)(addr))
+#define AS_UL2(addr) *((ulonglong2*)(addr))
+
 __constant__ static uint32_t __align__(8) c_midstate76[8];
 __constant__ static uint32_t __align__(8) c_dataEnd80[4];
 

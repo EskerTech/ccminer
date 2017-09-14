@@ -14,8 +14,15 @@ extern "C" {
 #include <sph/sph_ripemd.h>
 }
 
-#include <cuda_helper.h>
-#include <miner.h>
+#include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
+
+#define AS_U64(addr) *((uint64_t*)(addr))
+#define AS_U32(addr) *((uint32_t*)(addr))
+#define AS_UINT2(addr) *((uint2*)(addr))
+#define AS_UINT4(addr) *((uint4*)(addr))
+#define AS_UL2(addr) *((ulonglong2*)(addr))
 
 #define A 64
 #define debug_cpu 0

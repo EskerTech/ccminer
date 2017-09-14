@@ -1,6 +1,8 @@
 #include <stdio.h>
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 // globaler Speicher für unsere Ergebnisse
 static uint32_t *d_hashoutput[MAX_GPUS];

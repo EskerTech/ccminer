@@ -10,6 +10,7 @@ extern "C" {
 
 #include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #include <stdio.h>
 #include <memory.h>
@@ -306,27 +307,6 @@ void zr5_final_round(int thr_id, uint32_t threads)
 
 	zr5_final_round_data_gpu <<<grid, block>>> (threads, d_buffers[thr_id], d_permut[thr_id], d_hash[thr_id], d_poks[thr_id]);
 }
-
-
-extern void jackpot_keccak512_cpu_init(int thr_id, uint32_t threads);
-extern void jackpot_keccak512_cpu_setBlock(void *pdata, size_t inlen);
-
-extern void zr5_keccak512_cpu_hash(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_hash);
-extern void zr5_keccak512_cpu_hash_pok(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t* pdata, uint32_t *d_hash, uint16_t *d_poks);
-
-extern void quark_blake512_cpu_init(int thr_id, uint32_t threads);
-extern void quark_blake512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_nonceVector, uint32_t *d_hash, int order);
-extern void quark_blake512_cpu_free(int thr_id);
-
-extern void quark_groestl512_cpu_init(int thr_id, uint32_t threads);
-extern void quark_groestl512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_nonceVector, uint32_t *d_hash, int order);
-extern void quark_groestl512_cpu_free(int thr_id);
-
-extern void quark_jh512_cpu_init(int thr_id, uint32_t threads);
-extern void quark_jh512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_nonceVector, uint32_t *d_hash, int order);
-
-extern void quark_skein512_cpu_init(int thr_id, uint32_t threads);
-extern void quark_skein512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_nonceVector, uint32_t *d_hash, int order);
 
 static bool init[MAX_GPUS] = { 0 };
 

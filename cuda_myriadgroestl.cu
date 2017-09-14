@@ -3,18 +3,20 @@
 #include <stdio.h>
 #include <memory.h>
 
+#if __CUDA_ARCH__ >= 300
+// 64 Registers Variant for Compute 3.0
+#include "quark/groestl_functions_quad.h"
+#include "quark/groestl_transf_quad.h"
+#endif
+
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 #ifdef __INTELLISENSE__
 #define __CUDA_ARCH__ 500
 #define __funnelshift_r(x,y,n) (x >> n)
 #define atomicExch(p,x) x
-#endif
-
-#if __CUDA_ARCH__ >= 300
-// 64 Registers Variant for Compute 3.0
-#include "quark/groestl_functions_quad.h"
-#include "quark/groestl_transf_quad.h"
 #endif
 
 // globaler Speicher für alle HeftyHashes aller Threads
@@ -51,14 +53,6 @@ const uint32_t myr_sha256_cpu_w2Table[] = {
 };
 
 #define SWAB32(x) cuda_swab32(x)
-
-#if __CUDA_ARCH__ < 320
-	// Kepler (Compute 3.0)
-	#define ROTR32(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
-#else
-	// Kepler (Compute 3.5)
-	#define ROTR32(x, n) __funnelshift_r( (x), (x), (n) )
-#endif
 
 #define R(x, n)         ((x) >> (n))
 #define Ch(x, y, z)     ((x & (y ^ z)) ^ z)
@@ -276,7 +270,7 @@ void myriadgroestl_gpu_hash_quad(uint32_t threads, uint32_t startNounce, uint32_
 		to_bitslice_quad(paddedInput, msgBitsliced);
 
 		uint32_t state[8];
-		groestl512_progressMessage_quad(state, msgBitsliced);
+		groestl512_progressMessage_quad(state, msgBitsliced,threadIdx.x);
 
 		uint32_t out_state[16];
 		from_bitslice_quad(state, out_state);

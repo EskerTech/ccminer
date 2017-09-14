@@ -17,6 +17,8 @@
 #endif
 
 #include "miner.h"
+#include "cuda_helper.h"
+#include "cuda_vectors.h"
 
 extern "C" {
 #include "sph/sph_keccak.h"
@@ -25,7 +27,6 @@ extern "C" {
 }
 #include "hefty1.h"
 #include "heavy/heavy.h"
-#include "cuda_helper.h"
 
 extern uint32_t *d_hash2output[MAX_GPUS];
 extern uint32_t *d_hash3output[MAX_GPUS];

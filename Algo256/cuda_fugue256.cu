@@ -3,7 +3,10 @@
 
 #include "sph/sph_fugue.h"
 
+#include "miner.h"
 #include "cuda_helper.h"
+#include "cuda_vectors.h"
+
 #include <host_defines.h>
 
 #define USE_SHARED 1
