@@ -203,7 +203,7 @@
       <MaxRegCount>80</MaxRegCount>
       <PtxAsOptionV>true</PtxAsOptionV>
       <Keep>true</Keep>
-      <CodeGeneration>compute_61,sm_61;compute_50,sm_50</CodeGeneration>
+      <CodeGeneration>compute_61,sm_61;compute_50,sm_50;compute_30,sm_30</CodeGeneration>
       <Include>$(NVTOOLSEXT_PATH)\include</Include>
       <Optimization>O3</Optimization>
       <TargetMachinePlatform>64</TargetMachinePlatform>

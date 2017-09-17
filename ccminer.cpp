@@ -3864,7 +3864,7 @@ int main(int argc, char *argv[])
 	parse_single_opt('q', argc, argv);
 
 	printf("******************************************************************\n");
-	printf("*** ccminer " PACKAGE_VERSION " for Esker https://esker.tech \n");
+	printf("*** " PACKAGE_NAME " " PACKAGE_VERSION " for Esker https://esker.tech \n");
 	if (!opt_quiet) {
 		const char* arch = is_x64() ? "64-bits" : "32-bits";
 #ifdef _MSC_VER

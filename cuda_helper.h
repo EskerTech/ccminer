@@ -186,25 +186,82 @@ __device__ __host__ __forceinline__ void xchg(uint32_t &x, uint32_t &y) {
 }
 // for other types...
 #define XCHG(x, y) { x ^= y; y = x ^ y; x ^= y; }
-
-static __host__ __device__ __forceinline__ uint2 vectorize(uint64_t v) {
-	uint2 result;
-#if defined(__CUDA_ARCH__)
-	asm("mov.b64 {%0,%1},%2; \n\t"
-		: "=r"(result.x), "=r"(result.y) : "l"(v));
-#else
-	result.x = (uint32_t)(v);
-	result.y = (uint32_t)(v >> 32);
-#endif
+__device__ __forceinline__ uint64_t devectorize(uint2 x)
+{
+	uint64_t result;
+	asm("mov.b64 %0,{%1,%2}; \n\t"
+		: "=l"(result) : "r"(x.x), "r"(x.y));
 	return result;
 }
 
-static __host__ __device__ __forceinline__ uint64_t devectorize(uint2 v) {
-#if defined(__CUDA_ARCH__)
-	return MAKE_ULONGLONG(v.x, v.y);
-#else
-	return (((uint64_t)v.y) << 32) + v.x;
-#endif
+
+__device__ __forceinline__ uint2 vectorize(const uint64_t x)
+{
+	uint2 result;
+	asm("mov.b64 {%0,%1},%2; \n\t"
+		: "=r"(result.x), "=r"(result.y) : "l"(x));
+	return result;
+}
+__device__ __forceinline__ void devectorize2(uint4 inn, uint2 &x, uint2 &y)
+{
+	x.x = inn.x;
+	x.y = inn.y;
+	y.x = inn.z;
+	y.y = inn.w;
+}
+
+
+__device__ __forceinline__ uint4 vectorize2(uint2 x, uint2 y)
+{
+	uint4 result;
+	result.x = x.x;
+	result.y = x.y;
+	result.z = y.x;
+	result.w = y.y;
+
+	return result;
+}
+
+__device__ __forceinline__ uint4 vectorize2(uint2 x)
+{
+	uint4 result;
+	result.x = x.x;
+	result.y = x.y;
+	result.z = x.x;
+	result.w = x.y;
+	return result;
+}
+
+
+__device__ __forceinline__ uint4 vectorize4(uint64_t x, uint64_t y)
+{
+	uint4 result;
+	asm("mov.b64 {%0,%1},%2; \n\t"
+		: "=r"(result.x), "=r"(result.y) : "l"(x));
+	asm("mov.b64 {%0,%1},%2; \n\t"
+		: "=r"(result.z), "=r"(result.w) : "l"(y));
+	return result;
+}
+__device__ __forceinline__ void devectorize4(uint4 inn, uint64_t &x, uint64_t &y)
+{
+	asm("mov.b64 %0,{%1,%2}; \n\t"
+		: "=l"(x) : "r"(inn.x), "r"(inn.y));
+	asm("mov.b64 %0,{%1,%2}; \n\t"
+		: "=l"(y) : "r"(inn.z), "r"(inn.w));
+}
+
+
+static __device__ __forceinline__ uint2 vectorizelow(uint32_t v) {
+	uint2 result;
+	result.x = v;
+	result.y = 0;
+	return result;
+}
+static __device__ __forceinline__ uint2 vectorizehigh(uint32_t v) {
+	uint2 result;
+	result.x = 0;
+	result.y = v;
+	return result;
 }
 
 #if defined(__CUDA_ARCH__)
