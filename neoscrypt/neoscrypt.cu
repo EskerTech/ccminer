@@ -33,6 +33,8 @@ int scanhash_neoscrypt(int thr_id, struct work* work, uint32_t max_nonce, unsign
 	uint32_t throughput = cuda_default_throughput(thr_id, 1U << intensity);
 
 	if (strstr(device_name[dev_id], "GTX 9")) throughput = 45312;
+	
+	throughput = (uint32_t)((throttle / 100) * throughput);
 
 	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
 
@@ -81,6 +83,8 @@ int scanhash_neoscrypt(int thr_id, struct work* work, uint32_t max_nonce, unsign
 	int rc = 0;
 
 	do {
+		if (throttle < 100) usleep((100.0f - throttle) * 1700);
+
 		neoscrypt_cpu_hash_k4(have_stratum, thr_id, throughput, pdata[19], d_resNonce[thr_id], ptarget[7]);
 
 		cudaMemcpy(h_resNonce[thr_id], d_resNonce[thr_id], NBN * sizeof(uint32_t), cudaMemcpyDeviceToHost);

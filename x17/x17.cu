@@ -206,7 +206,7 @@ extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, u
 
 	do {
 		
-		if( throttle < 100 ) usleep((100.0f - throttle)*1000);
+		if (throttle < 100) usleep((100.0f - throttle) * 530);
 
 		// Hash with CUDA
 		quark_blake512_cpu_hash_80(thr_id, throughput, pdata[19], d_hash[thr_id]);

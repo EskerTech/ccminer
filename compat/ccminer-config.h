@@ -152,16 +152,16 @@
 /* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
-#define PACKAGE "ccminer"
+#define PACKAGE "ccminer-esker"
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT ""
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "ccminer"
+#define PACKAGE_NAME "ccminer-esker"
 
 /* Define to the home page for this package. */
-#define PACKAGE_URL "http://github.com/tpruvot/ccminer"
+#define PACKAGE_URL "http://github.com/EskerTech/ccminer"
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "2.2.1"
