@@ -92,6 +92,45 @@ typedef struct __builtin_align__(32) uint48 {
 	uint4 s0, s1;
 } uint48;
 
+typedef struct  __align__(64) uint816
+{
+	uint48 s0, s1;
+
+} uint816;
+
+typedef struct  __align__(128) uint1632
+{
+	uint816 s0, s1;
+
+} uint1632;
+
+typedef struct  __align__(256) uintx64
+{
+	uint1632 s0, s1;
+
+} uintx64;
+
+typedef struct  __builtin_align__(256) uintx64bis
+{
+	uint28 s0, s1, s2, s3, s4, s5, s6, s7;
+
+} uintx64bis;
+
+
+
+typedef struct  __align__(512) uintx128
+{
+	uintx64 s0, s1;
+
+} uintx128;
+
+typedef struct  __align__(1024) uintx256
+{
+	uintx128 s0, s1;
+
+} uintx256;
+
+
 typedef struct __align__(256) uint4x16 {
 	uint4 s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15;
 } uint4x16;
@@ -137,6 +176,50 @@ static __inline__ __device__ uint48 make_uint48(uint4 s0, uint4 s1)
 static __inline__ __device__ uint28 make_uint28(uint2 s0, uint2 s1, uint2 s2, uint2 s3)
 {
 	uint28 t; t.x = s0; t.y = s1; t.z = s2; t.w = s3;
+	return t;
+}
+
+static __inline__ __device__ uint816 make_uint816(const uint48 &s0, const uint48 &s1)
+{
+	uint816 t; t.s0 = s0; t.s1 = s1;
+	return t;
+}
+
+
+
+
+
+static __inline__ __device__ uint1632 make_uint1632(const uint816 &s0, const uint816 &s1)
+{
+	uint1632 t; t.s0 = s0; t.s1 = s1;
+	return t;
+}
+
+static __inline__ __device__ uintx64 make_uintx64(const uint1632 &s0, const uint1632 &s1)
+{
+	uintx64 t; t.s0 = s0; t.s1 = s1;
+	return t;
+}
+
+static __inline__ __device__ uintx64bis make_uintx64bis(
+	const uint28 &s0, const uint28 &s1, const uint28 &s2, const uint28 &s3,
+	const uint28 &s4, const uint28 &s5, const uint28 &s6, const uint28 &s7
+)
+{
+	uintx64bis t; t.s0 = s0; t.s1 = s1; t.s2 = s2; t.s3 = s3; t.s4 = s4; t.s5 = s5; t.s6 = s6; t.s7 = s7;
+	return t;
+}
+
+
+static __inline__ __device__ uintx128 make_uintx128(const uintx64 &s0, const uintx64 &s1)
+{
+	uintx128 t; t.s0 = s0; t.s1 = s1;
+	return t;
+}
+
+static __inline__ __device__ uintx256 make_uintx256(const uintx128 &s0, const uintx128 &s1)
+{
+	uintx256 t; t.s0 = s0; t.s1 = s1;
 	return t;
 }
 
@@ -259,6 +342,32 @@ static __forceinline__ __device__  uint48 operator+ (const uint48 &a, const uint
 	return make_uint48(a.s0 + b.s0, a.s1 + b.s1);
 }
 
+static __forceinline__ __device__  uint816 operator^ (const uint816 &a, const uint816 &b) {
+	return make_uint816(a.s0 ^ b.s0, a.s1 ^ b.s1);
+}
+
+static __forceinline__ __device__  uint816 operator+ (const uint816 &a, const uint816 &b) {
+	return make_uint816(a.s0 + b.s0, a.s1 + b.s1);
+}
+
+
+static __forceinline__ __device__ uint1632 operator^ (const uint1632 &a, const uint1632 &b) {
+	return make_uint1632(a.s0 ^ b.s0, a.s1 ^ b.s1);
+}
+
+
+static __forceinline__ __device__  uintx64 operator^ (const uintx64 &a, const uintx64 &b) {
+	return make_uintx64(a.s0 ^ b.s0, a.s1 ^ b.s1);
+}
+
+static __forceinline__ __device__  uintx128 operator^ (const uintx128 &a, const uintx128 &b) {
+	return make_uintx128(a.s0 ^ b.s0, a.s1 ^ b.s1);
+}
+
+static __forceinline__ __device__  uintx256 operator^ (const uintx256 &a, const uintx256 &b) {
+	return make_uintx256(a.s0 ^ b.s0, a.s1 ^ b.s1);
+}
+
 /////////////////////////
 
 static __forceinline__ __device__ __host__ uint16 operator^ (const uint16 &a, const uint16 &b) {
@@ -286,6 +395,14 @@ static __forceinline__ __device__  uint2_16 operator+ (const uint2_16 &a, const 
 		a.s8 + b.s8, a.s9 + b.s9, a.sa + b.sa, a.sb + b.sb, a.sc + b.sc, a.sd + b.sd, a.se + b.se, a.sf + b.sf);
 }
 
+static __forceinline__ __device__  uintx64bis operator^ (const uintx64bis &a, const uintx64bis &b) {
+	return make_uintx64bis(a.s0 ^ b.s0, a.s1 ^ b.s1, a.s2 ^ b.s2, a.s3 ^ b.s3, a.s4 ^ b.s4, a.s5 ^ b.s5, a.s6 ^ b.s6, a.s7 ^ b.s7);
+}
+
+static __forceinline__ __device__  uintx64bis operator+ (const uintx64bis &a, const uintx64bis &b) {
+	return make_uintx64bis(a.s0 + b.s0, a.s1 + b.s1, a.s2 + b.s2, a.s3 + b.s3, a.s4 + b.s4, a.s5 + b.s5, a.s6 + b.s6, a.s7 + b.s7);
+}
+
 static __forceinline__ __device__  uint32 operator^ (const uint32 &a, const uint32 &b) {
 	return make_uint32(a.lo ^ b.lo, a.hi ^ b.hi);
 }
@@ -303,6 +420,21 @@ static __forceinline__ __device__ ulonglong16 operator+ (const ulonglong16 &a, c
 }
 
 static __forceinline__ __device__ void operator^= (ulong8 &a, const ulong8 &b) { a = a ^ b; }
+static __forceinline__ __device__ void operator^= (uintx64 &a, const uintx64 &b) { a = a ^ b; }
+
+static __forceinline__ __device__ void operator^= (uintx64bis &a, const uintx64bis &b) { a = a ^ b; }
+
+
+static __forceinline__ __device__ void operator^= (uintx128 &a, const uintx128 &b) { a = a ^ b; }
+static __forceinline__ __device__ void operator^= (uintx256 &a, const uintx256 &b) { a = a ^ b; }
+
+
+static __forceinline__ __device__ void operator^= (uint816 &a, const uint816 &b) { a = a ^ b; }
+
+static __forceinline__ __device__ void operator+= (uint816 &a, const uint816 &b) { a = a + b; }
+
+
+//static __forceinline__ __device__ void operator+= (uint48 &a, const uint48 &b) { a = a + b; }
 
 static __forceinline__ __device__ void operator^= (uint28 &a, const uint28 &b) { a = a ^ b; }
 static __forceinline__ __device__ void operator+= (uint28 &a, const uint28 &b) { a = a + b; }
@@ -385,12 +517,20 @@ static __forceinline__ __device__ ulonglonglong operator+ (const ulonglonglong &
 
 static __forceinline__ __device__ void operator^= (ulonglong2to8 &a, const ulonglong2to8 &b) { a = a ^ b; }
 
+//static __forceinline__ __device__ void operator+= (uint4 &a, uint4 b) { a = a + b; }
 static __forceinline__ __device__ void operator+= (uchar4 &a, uchar4 b) { a = a + b; }
 static __forceinline__ __device__  __host__ void operator+= (uint8 &a, const uint8 &b) { a = a + b; }
 static __forceinline__ __device__  __host__ void operator+= (uint16 &a, const uint16 &b) { a = a + b; }
-static __forceinline__ __device__  __host__ void operator-= (uint16 &a, const uint16 &b) { a = a - b; }
 static __forceinline__ __device__   void operator+= (uint2_16 &a, const uint2_16 &b) { a = a + b; }
 static __forceinline__ __device__   void operator^= (uint2_16 &a, const uint2_16 &b) { a = a + b; }
+
+
+//static __forceinline__ __device__ void operator+= (uchar4 &a, uchar4 b) { a = a + b; }
+//static __forceinline__ __device__  __host__ void operator+= (uint8 &a, const uint8 &b) { a = a + b; }
+//static __forceinline__ __device__  __host__ void operator+= (uint16 &a, const uint16 &b) { a = a + b; }
+static __forceinline__ __device__  __host__ void operator-= (uint16 &a, const uint16 &b) { a = a - b; }
+//static __forceinline__ __device__   void operator+= (uint2_16 &a, const uint2_16 &b) { a = a + b; }
+//static __forceinline__ __device__   void operator^= (uint2_16 &a, const uint2_16 &b) { a = a + b; }
 
 static __forceinline__ __device__ void operator+= (ulong8 &a, const ulong8 &b) { a = a + b; }
 static __forceinline__ __device__ void operator+= (ulonglong16 &a, const ulonglong16 &b) { a = a + b; }

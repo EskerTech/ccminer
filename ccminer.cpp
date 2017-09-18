@@ -12,6 +12,8 @@
 
 #include <ccminer-config.h>
 
+#include <cuda_profiler_api.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2474,6 +2476,7 @@ static void *miner_thread(void *userdata)
 
 		/*algo_free_all(thr_id);
 		cudaDeviceSynchronize();
+		cudaProfilerStop();
 		cudaDeviceReset();
 		proper_exit(0);*/
 

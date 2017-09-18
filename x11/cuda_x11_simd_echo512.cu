@@ -396,9 +396,9 @@ static void x11_simd512_gpu_compress_64_maxwell_echo512_final(const uint32_t* __
 
 __global__
 #if __CUDA_ARCH__ > 500
-__launch_bounds__(TPB52_2, 6)
+__launch_bounds__(TPB52_2, 5)
 #else
-__launch_bounds__(TPB50_2, 6)
+__launch_bounds__(TPB50_2, 5)
 #endif
 static void x11_simd512_gpu_compress_64_maxwell_echo512(uint32_t *g_hash, const uint4 *const __restrict__ g_fft4)
 {

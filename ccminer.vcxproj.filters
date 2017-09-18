@@ -273,9 +273,6 @@
     <ClCompile Include="lyra2\Lyra2Z.c">
       <Filter>Source Files\sph</Filter>
     </ClCompile>
-    <ClCompile Include="neoscrypt\neoscrypt-cpu.c">
-      <Filter>Source Files\CUDA\neoscrypt</Filter>
-    </ClCompile>
     <ClCompile Include="fuguecoin.cpp">
       <Filter>Source Files\CUDA</Filter>
     </ClCompile>
@@ -342,6 +339,7 @@
     <ClCompile Include="scrypt\scrypt.cpp">
       <Filter>Source Files\CUDA\scrypt</Filter>
     </ClCompile>
+    <ClCompile Include="sph\neoscrypt.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="algos.h">
@@ -512,9 +510,6 @@
     <ClInclude Include="scrypt\salsa_kernel.h">
       <Filter>Source Files\CUDA\scrypt</Filter>
     </ClInclude>
-    <ClInclude Include="neoscrypt\neoscrypt.h">
-      <Filter>Source Files\CUDA\neoscrypt</Filter>
-    </ClInclude>
     <ClInclude Include="hefty1.h">
       <Filter>Source Files\CUDA\heavy</Filter>
     </ClInclude>
@@ -572,6 +567,13 @@
     <ClInclude Include="skein\skein_header.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="neoscrypt\cuda_vector_tpruvot.cuh">
+      <Filter>Source Files\CUDA\neoscrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="neoscrypt\cuda_vector_uint2x4.cuh">
+      <Filter>Source Files\CUDA\neoscrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="sph\neoscrypt.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cuda_groestlcoin.cu">
@@ -867,6 +869,9 @@
     </CudaCompile>
     <CudaCompile Include="cuda.cpp">
       <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="neoscrypt\cuda_neoscrypt_tpruvot.cu">
+      <Filter>Source Files\CUDA\neoscrypt</Filter>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>

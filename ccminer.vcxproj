@@ -203,7 +203,7 @@
       <MaxRegCount>80</MaxRegCount>
       <PtxAsOptionV>true</PtxAsOptionV>
       <Keep>true</Keep>
-      <CodeGeneration>compute_61,sm_61;compute_50,sm_50;compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_61,sm_61;compute_50,sm_50</CodeGeneration>
       <Include>$(NVTOOLSEXT_PATH)\include</Include>
       <Optimization>O3</Optimization>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -253,6 +253,7 @@
     <ClCompile Include="nvapi.cpp" />
     <ClCompile Include="nvsettings.cpp" />
     <ClCompile Include="pools.cpp" />
+    <ClCompile Include="sph\neoscrypt.c" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="bench.cpp" />
     <ClCompile Include="bignum.cpp" />
@@ -272,8 +273,8 @@
     <ClCompile Include="lyra2\Lyra2Z.c" />
     <ClInclude Include="equi\eqcuda.hpp" />
     <ClInclude Include="equi\equihash.h" />
-    <ClInclude Include="neoscrypt\neoscrypt.h" />
-    <ClCompile Include="neoscrypt\neoscrypt-cpu.c" />
+    <ClInclude Include="neoscrypt\cuda_vector_tpruvot.cuh" />
+    <ClInclude Include="neoscrypt\cuda_vector_uint2x4.cuh" />
     <CudaCompile Include="Algo256\bmw.cu" />
     <CudaCompile Include="Algo256\cuda_bmw.cu">
       <MaxRegCount>76</MaxRegCount>
@@ -374,6 +375,7 @@
     <ClInclude Include="skein\skein_header.h" />
     <ClInclude Include="sph\blake2b.h" />
     <ClInclude Include="sph\blake2s.h" />
+    <ClInclude Include="sph\neoscrypt.h" />
     <ClInclude Include="sph\sph_blake.h" />
     <ClInclude Include="sph\sph_bmw.h" />
     <ClInclude Include="sph\sph_cubehash.h" />
@@ -406,6 +408,7 @@
     <CudaCompile Include="cuda.cpp" />
     <CudaCompile Include="cuda_groestlcoin.cu" />
     <CudaCompile Include="cuda_myriadgroestl.cu" />
+    <CudaCompile Include="neoscrypt\cuda_neoscrypt_tpruvot.cu" />
     <CudaCompile Include="neoscrypt\neoscrypt.cu" />
     <CudaCompile Include="quark\cuda_keccak_skein512.cu" />
     <CudaCompile Include="quark\cuda_quark_jh512.cu" />

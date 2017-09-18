@@ -1,147 +1,198 @@
-#include <cuda_runtime.h>
 #include <string.h>
-
-#include <miner.h>
 #include "cuda_helper.h"
+#include "miner.h"
 
-#include "neoscrypt.h"
+extern void neoscrypt_setBlockTarget(int thr_id, uint32_t* pdata, const void *target);
+extern void neoscrypt_cpu_init_2stream(int thr_id, uint32_t threads);
+extern void neoscrypt_cpu_hash_k4_2stream(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *result);
+//extern void neoscrypt_cpu_hash_k4_52(int stratum, int thr_id, int threads, uint32_t startNounce, int order, uint32_t* foundnonce);
+void neoscrypt_init(int thr_id, uint32_t threads);
+void neoscrypt_setBlockTarget_tpruvot(uint32_t* const pdata, uint32_t* const target);
+void neoscrypt_hash_tpruvot(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *resNonces);
 
-#define NBN 2
+int scanhash_neoscrypt(int thr_id, struct work *work, uint32_t max_nonce, unsigned long *hashes_done)
+{
+	uint32_t* pdata = work->data;
+	uint32_t* ptarget = work->target;
 
-static uint32_t *d_resNonce[MAX_GPUS];
-static uint32_t *h_resNonce[MAX_GPUS];
-
-extern void neoscrypt_setBlockTarget(uint32_t* pdata);
-extern void neoscrypt_cpu_init(int thr_id, uint32_t threads);
-extern void neoscrypt_free(int thr_id);
-extern void neoscrypt_cpu_hash_k4(bool stratum, int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *result, const uint32_t target7);
-
-static bool init[MAX_GPUS] = { 0 };
-
-int scanhash_neoscrypt(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done) {
-
-	uint32_t _ALIGN(64) endiandata[20];
-	uint32_t *pdata = work->data;
-	uint32_t *ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];
+	uint32_t throughput;
+	static THREAD uint32_t throughputmax;
 
-	int dev_id = device_map[thr_id];
-	int intensity = 14;
-
-	if (strstr(device_name[dev_id], "GTX 10")) intensity = 16;
-
-	uint32_t throughput = cuda_default_throughput(thr_id, 1U << intensity);
-
-	if (strstr(device_name[dev_id], "GTX 9")) throughput = 45312;
-	
-	throughput = (uint32_t)((throttle / 100) * throughput);
-
-	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
-
-	api_set_throughput(thr_id, throughput);
+	static THREAD volatile bool init = false;
+	static THREAD uint32_t hw_errors = 0;
+	static THREAD uint32_t *foundNonce = nullptr;
+	static THREAD bool use_tpruvot = false;
 
 	if (opt_benchmark)
-		ptarget[7] = 0x00ff;
+	{
+		ptarget[7] = 0x01ff;
+	}
 
-	if (!init[thr_id]) {
-		cudaSetDevice(dev_id);
-		if (opt_cudaschedule == -1 && gpu_threads == 1) {
-			cudaDeviceReset();
-			// reduce cpu usage
-			cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-			cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-			cudaGetLastError(); // reset errors if device is not "reset"
+	if (!init)
+	{
+		CUDA_SAFE_CALL(cudaSetDevice(device_map[thr_id]));
+
+		cudaDeviceProp props;
+		cudaGetDeviceProperties(&props, device_map[thr_id]);
+		unsigned int cc = props.major * 10 + props.minor;
+		if (cc <= 30)
+		{
+			applog(LOG_ERR, "GPU #%d: this gpu is not supported", device_map[thr_id]);
+			//mining_has_stopped[thr_id] = true;
+			proper_exit(2);
 		}
-		gpulog(LOG_INFO, thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
+		if (cc == 30)
+			use_tpruvot = true;
 
-		neoscrypt_cpu_init(thr_id, throughput);
-
-		CUDA_SAFE_CALL(cudaMalloc(&d_resNonce[thr_id], NBN * sizeof(uint32_t)));
-		h_resNonce[thr_id] = (uint32_t*)malloc(NBN * sizeof(uint32_t));
-		if (h_resNonce[thr_id] == NULL) {
-			gpulog(LOG_ERR, thr_id, "Host memory allocation failed");
-			exit(EXIT_FAILURE);
+		unsigned int intensity = (256 * 64 * 1); // -i 14
+		if (strstr(props.name, "1080 Ti"))
+		{
+			intensity = 256 * 64 * 5;
+			use_tpruvot = true;
+		}
+		else if (strstr(props.name, "1080"))
+		{
+			intensity = 256 * 64 * 5;
+			use_tpruvot = true;
+		}
+		else if (strstr(props.name, "1070"))
+		{
+			intensity = 256 * 64 * 5;
+		}
+		else if (strstr(props.name, "970"))
+		{
+			intensity = (256 * 64 * 5);
+		}
+		else if (strstr(props.name, "980"))
+		{
+			intensity = (256 * 64 * 5);
+		}
+		else if (strstr(props.name, "980 Ti"))
+		{
+			intensity = (256 * 64 * 5);
+		}
+		else if (strstr(props.name, "750 Ti"))
+		{
+			intensity = (256 * 64 * 3);
+		}
+		else if (strstr(props.name, "750"))
+		{
+			intensity = (256 * 64 * 1);
+		}
+		else if (strstr(props.name, "960"))
+		{
+			intensity = (256 * 64 * 2);
+		}
+		else if (strstr(props.name, "950"))
+		{
+			intensity = (256 * 64 * 2);
 		}
 
-		CUDA_LOG_ERROR();
-		init[thr_id] = true;
+
+		throughputmax = device_intensity(device_map[thr_id], __func__, intensity) / 2;
+		cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
+		//		cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);	
+		CUDA_SAFE_CALL(cudaMallocHost(&foundNonce, 2 * 4));
+
+#if defined WIN32 && !defined _WIN64
+		// 2GB limit for cudaMalloc
+		if (throughputmax > 0x7fffffffULL / (32 * 128 * sizeof(uint64_t)))
+		{
+			applog(LOG_ERR, "intensity too high");
+			mining_has_stopped[thr_id] = true;
+			proper_exit(2);
+		}
+#endif
+		if (use_tpruvot)
+			neoscrypt_init(thr_id, throughputmax);
+		else
+			neoscrypt_cpu_init_2stream(thr_id, throughputmax);
+		//mining_has_stopped[thr_id] = false;
+		init = true;
 	}
 
-	if (have_stratum) {
-		for (int k = 0; k < 20; k++)
-			be32enc(&endiandata[k], pdata[k]);
+	throughput = (uint32_t)((throttle / 100) * throughputmax);
+	throughput = min(throughput, (max_nonce - first_nonce) / 2) & 0xffffff00;
+
+	uint32_t endiandata[20];
+	for (int k = 0; k < 20; k++)
+	{
+		be32enc(&endiandata[k], ((uint32_t*)pdata)[k]);
 	}
-	else {
-		for (int k = 0; k < 20; k++)
-			endiandata[k] = pdata[k];
-	}
+	if (use_tpruvot)
+		neoscrypt_setBlockTarget_tpruvot(endiandata, ptarget);
+	else
+		neoscrypt_setBlockTarget(thr_id, endiandata, ptarget);
 
-	cudaMemset(d_resNonce[thr_id], 0xff, NBN * sizeof(uint32_t));
 
-	neoscrypt_setBlockTarget(endiandata);
+	do
+	{
+		if(throttle < 100) usleep((100.0f - throttle) * 500);
 
-	int rc = 0;
+		if (use_tpruvot)
+			neoscrypt_hash_tpruvot(thr_id, throughput, pdata[19], foundNonce);
+		else
+			neoscrypt_cpu_hash_k4_2stream(thr_id, throughput, pdata[19], foundNonce);
+		/*if (stop_mining)
+		{
+			mining_has_stopped[thr_id] = true; pthread_exit(nullptr);
+		}*/
+		if (foundNonce[0] != 0xffffffff)
+		{
+			uint32_t vhash64[8] = { 0 };
 
-	do {
-		if (throttle < 100) usleep((100.0f - throttle) * 1700);
+			be32enc(&endiandata[19], foundNonce[0]);
+			neoscrypt((unsigned char*)endiandata, (unsigned char*)vhash64, 0x80000620);
 
-		neoscrypt_cpu_hash_k4(have_stratum, thr_id, throughput, pdata[19], d_resNonce[thr_id], ptarget[7]);
-
-		cudaMemcpy(h_resNonce[thr_id], d_resNonce[thr_id], NBN * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-		if (h_resNonce[thr_id][0] != UINT32_MAX) {
-			uint32_t vhash[8];
-			if (have_stratum)
-				be32enc(&endiandata[19], h_resNonce[thr_id][0]);
-			else
-				endiandata[19] = h_resNonce[thr_id][0];
-			neoscrypt((uchar*)vhash, (uchar*)endiandata, 0x80000620);
-			if (vhash[7] <= ptarget[7] && fulltest(vhash, ptarget)) {
+			if (vhash64[7] <= ptarget[7] && fulltest(vhash64, ptarget))
+			{
 				*hashes_done = pdata[19] - first_nonce + throughput;
-				work_set_target_ratio(work, vhash);
-				pdata[19] = h_resNonce[thr_id][0];
-				rc = 1;
-				if (h_resNonce[thr_id][1] != UINT32_MAX) {
-					//					if(!opt_quiet)
-					//						gpulog(LOG_BLUE,dev_id,"Found second nonce %08x !", h_resNonce[thr_id][1]);
-					if (have_stratum)
-						be32enc(&endiandata[19], h_resNonce[thr_id][1]);
-					else
-						endiandata[19] = h_resNonce[thr_id][1];
-					neoscrypt((uchar*)vhash, (uchar*)endiandata, 0x80000620);
-					pdata[21] = h_resNonce[thr_id][1];
-					if (bn_hash_target_ratio(vhash, ptarget) > work->shareratio[0]) {
-						work_set_target_ratio(work, vhash);
-						xchg(pdata[19], pdata[21]);
+				int res = 1;
+				if (opt_benchmark)
+					applog(LOG_INFO, "GPU #%d Found nonce %08x", device_map[thr_id], foundNonce[0]);
+				pdata[19] = foundNonce[0];
+				if (foundNonce[1] != 0xffffffff)
+				{
+					be32enc(&endiandata[19], foundNonce[1]);
+					neoscrypt((unsigned char*)endiandata, (unsigned char*)vhash64, 0x80000620);
+
+					if (vhash64[7] <= ptarget[7] && fulltest(vhash64, ptarget))
+					{
+						pdata[21] = foundNonce[1];
+						res++;
+						if (opt_benchmark)
+							applog(LOG_INFO, "GPU #%d: Found second nonce %08x", device_map[thr_id], foundNonce[1]);
 					}
-					rc = 2;
+					else
+					{
+						if (vhash64[7] != ptarget[7])
+						{
+							applog(LOG_WARNING, "GPU #%d: Second nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[1]);
+							hw_errors++;
+						}
+					}
+
 				}
-				return rc;
+				return res;
 			}
-			else {
-				if (vhash[7] != ptarget[7])
-					applog(LOG_WARNING, "GPU #%d: Nonce $%08X does not validate on CPU!", device_map[thr_id], h_resNonce[thr_id][0]);
-				cudaMemset(d_resNonce[thr_id], 0xff, NBN * sizeof(uint32_t));
+			else
+			{
+				if (vhash64[7] != ptarget[7])
+				{
+					applog(LOG_WARNING, "GPU #%d: Nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
+					hw_errors++;
+				}
 			}
+			//						if(hw_errors > 0) applog(LOG_WARNING, "Hardware errors: %u", hw_errors);
 		}
 		pdata[19] += throughput;
 	} while (!work_restart[thr_id].restart && ((uint64_t)max_nonce > ((uint64_t)(pdata[19]) + (uint64_t)throughput)));
 	*hashes_done = pdata[19] - first_nonce;
-	return rc;
+	return 0;
 }
 
-// cleanup
 void free_neoscrypt(int thr_id)
 {
-	if (!init[thr_id])
-		return;
-
-	cudaDeviceSynchronize();
-
-	free(h_resNonce[thr_id]);
-	cudaFree(d_resNonce[thr_id]);
-
-	neoscrypt_free(thr_id);
-	init[thr_id] = false;
-
-	cudaDeviceSynchronize();
+	// Nothing to do
 }

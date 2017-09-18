@@ -148,16 +148,16 @@ extern "C" void x17hash(void *output, const void *input)
 
 static bool init[MAX_GPUS] = { 0 };
 
-extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done){
-
+extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
+{
 	int dev_id = device_map[thr_id];
 
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];
 
-	uint32_t default_throughput = 1 << 20;
-	if (device_sm[dev_id] < 600) default_throughput = 1 << 19;
+	uint32_t default_throughput = (1 << 22) | (1 << 21);
+	if (device_sm[dev_id] < 600) default_throughput = 1 << 21;
 
 	/*if(device_sm[dev_id]<=500) default_throughput = 1<<20;
 	else if(device_sm[dev_id]<=520) default_throughput = 1<<21;
@@ -166,7 +166,12 @@ extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, u
 	if((strstr(device_name[dev_id], "6GB"))) default_throughput = 1<<22;*/
 	
 	uint32_t throughput = cuda_default_throughput(thr_id, default_throughput); // 19=256*256*8;
-	throughput = (uint32_t)((throttle/100) * throughput);
+
+	if (device_sm[dev_id] < 600)
+		throughput = (uint32_t)(((throttle/100)*(throttle/100)) * throughput);
+	else
+		throughput = (uint32_t)(((throttle / 100)*(throttle / 100)*(throttle / 100)) * throughput);
+
 	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
 	throughput &= 0xFFFFFF00;
 
@@ -176,12 +181,15 @@ extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, u
 	if (!init[thr_id])
 	{
 		cudaSetDevice(device_map[thr_id]);
-		if (opt_cudaschedule == -1 && gpu_threads == 1) {
+
+		if (opt_cudaschedule == -1 && gpu_threads == 1)
+		{
 			cudaDeviceReset();
 			// reduce cpu usage
 			cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
 			cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
 		}
+
 		gpulog(LOG_INFO,thr_id, "Intensity set to %g, %u cuda threads", throughput2intensity(throughput), throughput);
 
  		x11_simd_echo_512_cpu_init(thr_id, throughput);
@@ -190,10 +198,13 @@ extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, u
 		CUDA_SAFE_CALL(cudaMalloc(&d_hash[thr_id], 8 * sizeof(uint64_t) * throughput));
 		CUDA_SAFE_CALL(cudaMalloc(&d_resNonce[thr_id], NBN * sizeof(uint32_t)));
 		h_resNonce[thr_id] = (uint32_t*) malloc(NBN * sizeof(uint32_t));
-		if(h_resNonce[thr_id] == NULL){
+
+		if(h_resNonce[thr_id] == NULL)
+		{
 			gpulog(LOG_ERR,thr_id,"Host memory allocation failed");
 			exit(EXIT_FAILURE);
 		}		
+
 		init[thr_id] = true;
 	}
 
@@ -206,7 +217,7 @@ extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, u
 
 	do {
 		
-		if (throttle < 100) usleep((100.0f - throttle) * 530);
+		if (throttle < 100) usleep((100.0f - throttle) * 600);
 
 		// Hash with CUDA
 		quark_blake512_cpu_hash_80(thr_id, throughput, pdata[19], d_hash[thr_id]);
@@ -264,7 +275,8 @@ extern "C" int scanhash_x17(int thr_id, struct work* work, uint32_t max_nonce, u
 						xchg(pdata[19],pdata[21]);
 					}
 					res++;
-				}
+				}				
+
 				return res;
 			}
 			else {

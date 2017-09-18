@@ -45,6 +45,12 @@ void *alloca (size_t);
 
 #include "compat.h"
 
+#ifdef _MSC_VER
+#define THREAD __declspec(thread)
+#else
+#define THREAD __thread
+#endif
+
 #ifdef __INTELLISENSE__
 /* should be in stdint.h but... */
 typedef __int64 int64_t;
@@ -900,7 +906,7 @@ void lyra2re_hash(void *state, const void *input);
 void lyra2v2_hash(void *state, const void *input);
 void lyra2Z_hash(void *state, const void *input);
 void myriadhash(void *state, const void *input);
-void neoscrypt(uchar *output, const uchar *input, uint32_t profile);
+void neoscrypt(unsigned char *output, const unsigned char *input, unsigned int profile);
 //void nist5hash(void *state, const void *input);
 void pentablakehash(void *output, const void *input);
 void quarkhash(void *state, const void *input);
