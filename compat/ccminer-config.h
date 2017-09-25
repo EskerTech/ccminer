@@ -15,7 +15,7 @@
    */
 #define HAVE_ALLOCA_H 1
 
-/* Define to 1 if you have the declaration of `be32dec', and to 0 if you
+/* Define to 1 if you have the declaration of `be32dec', and to 0 if yo
    don't. */
 #define HAVE_DECL_BE32DEC 0
 

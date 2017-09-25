@@ -3,13 +3,14 @@ Based on the SPH implementation of blake2s
 Provos Alexis - 2016
 */
 
+#include "miner.h"
+
 #include <string.h>
 #include <stdint.h>
 
 #include "sph/blake2s.h"
 #include "sph/sph_types.h"
 
-#include "miner.h"
 #include "cuda_helper.h"
 #include "cuda_vectors.h"
 
@@ -136,7 +137,6 @@ static uint32_t *h_resNonce[MAX_GPUS];
 __global__ __launch_bounds__(TPB, 1)
 void blake2s_gpu_hash_nonce(const uint32_t threads, const uint32_t startNonce, uint32_t *resNonce, const uint32_t ptarget7) {
 
-#ifdef __CUDA_ARCH__
 	const uint32_t step = gridDim.x * blockDim.x;
 
 	uint32_t m[3];
@@ -215,13 +215,11 @@ void blake2s_gpu_hash_nonce(const uint32_t threads, const uint32_t startNonce, u
 			//			return;
 		}
 	}
-#endif
 }
 
 __global__ __launch_bounds__(TPB)
 void blake2s_gpu_hash_nonce(const uint32_t threads, const uint32_t startNonce, uint32_t *resNonce) {
 
-#ifdef __CUDA_ARCH__
 	const uint32_t step = gridDim.x * blockDim.x;
 
 	uint32_t m[3];
@@ -297,13 +295,8 @@ void blake2s_gpu_hash_nonce(const uint32_t threads, const uint32_t startNonce, u
 			//			return;
 		}
 	}
-#endif
 }
-
-__host__
 static void blake2s_setBlock(const uint32_t* input, const uint32_t ptarget7) {
-
-#ifdef __CUDA_ARCH__
 	uint32_t _ALIGN(64) m[16];
 	uint32_t _ALIGN(64) v[16];
 	uint32_t _ALIGN(64) h[21];
@@ -385,7 +378,6 @@ static void blake2s_setBlock(const uint32_t* input, const uint32_t ptarget7) {
 		h[19] = SPH_ROTL32(h[19], 7); //align the rotation with v[7] v[15];	
 	}
 	cudaMemcpyToSymbol(midstate, h, 20 * sizeof(uint32_t), 0, cudaMemcpyHostToDevice);
-#endif
 }
 
 static bool init[MAX_GPUS] = { 0 };
@@ -402,10 +394,10 @@ extern "C" int scanhash_blake2s(int thr_id, struct work *work, uint32_t max_nonc
 	const int dev_id = device_map[thr_id];
 	int intensity = 31;
 	uint32_t throughput = cuda_default_throughput(thr_id, 1U << intensity);
-	throughput = (uint32_t)((throttle / 100) * throughput);
-	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
-	throughput &= 0xFFFFFF00;
 
+	throughput = (uint32_t)(((throttle / 100)) * throughput);
+
+	if (init[thr_id]) throughput = min(throughput, max_nonce - first_nonce);
 
 	const dim3 grid((throughput + (NPT*TPB) - 1) / (NPT*TPB));
 	const dim3 block(TPB);
@@ -441,16 +433,14 @@ extern "C" int scanhash_blake2s(int thr_id, struct work *work, uint32_t max_nonc
 
 	int rc = 0;
 	cudaMemset(d_resNonce[thr_id], 0x00, maxResults * sizeof(uint32_t));
-
 	do {
-
 		if (throttle < 100) usleep((100.0f - throttle) * 4000);
 
 		if (ptarget[7]) {
-			blake2s_gpu_hash_nonce<<<grid, block>>>(throughput, pdata[19], d_resNonce[thr_id], ptarget[7]);
+			blake2s_gpu_hash_nonce << <grid, block >> >(throughput, pdata[19], d_resNonce[thr_id], ptarget[7]);
 		}
 		else {
-			blake2s_gpu_hash_nonce<<<grid, block>>>(throughput, pdata[19], d_resNonce[thr_id]);
+			blake2s_gpu_hash_nonce << <grid, block >> >(throughput, pdata[19], d_resNonce[thr_id]);
 		}
 		cudaMemcpy(h_resNonce[thr_id], d_resNonce[thr_id], sizeof(uint32_t), cudaMemcpyDeviceToHost);
 

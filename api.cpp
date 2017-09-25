@@ -90,7 +90,7 @@ static const char *MUNAVAILABLE = " - API multicast listener will not be availab
 static char *buffer = NULL;
 static time_t startup = 0;
 static int bye = 0;
-volatile float throttle = 100.0f;
+
 
 extern char *opt_api_bind;
 extern int opt_api_port;
@@ -101,8 +101,9 @@ extern char *opt_api_mcast_addr;
 extern char *opt_api_mcast_code;
 extern char *opt_api_mcast_des;
 extern int opt_api_mcast_port;
-extern bool global_paused;
 
+extern bool global_paused;
+volatile float throttle = 100.0f;
 void api_set_throttle(float val);
 
 // current stratum...
@@ -1406,20 +1407,20 @@ void api_set_throughput(int thr_id, uint32_t throughput)
 		bench_set_throughput(thr_id, throughput);
 }
 
-void api_set_throttle(float val)
-{
-	applog(LOG_INFO, "Setting throttle to %g %%", val);
+	void api_set_throttle(float val)
+	{
+		applog(LOG_INFO, "Setting throttle to %g %%", val);
 
-	if (val > 100.0f)
-		val = 100.0f;
-	if (val < 0.0f)
-		val = 0.0f;
+		if (val > 100.0f)
+			val = 100.0f;
+		if (val < 0.0f)
+			val = 0.0f;
 
-	// Calculate exp scale between 0-1
-	throttle = val;
+		// Calculate exp scale between 0-1
+		throttle = val;
 
-	for( int n = 0; n < MAX_GPUS; n++ )
-		gpus_reset_flag[n] = 1;
+		for( int n = 0; n < MAX_GPUS; n++ )
+			gpus_reset_flag[n] = 1;
 
-	restart_threads();
-}
+		restart_threads();
+	}

@@ -194,14 +194,18 @@ __device__ __forceinline__ uint64_t devectorize(uint2 x)
 	return result;
 }
 
-
-__device__ __forceinline__ uint2 vectorize(const uint64_t x)
-{
+static __host__ __device__ __forceinline__ uint2 vectorize(uint64_t v) {
 	uint2 result;
+#ifdef __CUDA_ARCH__
 	asm("mov.b64 {%0,%1},%2; \n\t"
-		: "=r"(result.x), "=r"(result.y) : "l"(x));
+		: "=r"(result.x), "=r"(result.y) : "l"(v));
+#else
+	result.x = (uint32_t)(v);
+	result.y = (uint32_t)(v >> 32);
+#endif
 	return result;
 }
+
 __device__ __forceinline__ void devectorize2(uint4 inn, uint2 &x, uint2 &y)
 {
 	x.x = inn.x;

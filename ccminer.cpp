@@ -2262,6 +2262,12 @@ static void *miner_thread(void *userdata)
 			pthread_cond_signal(&cgpu->monitor.sampling_signal);
 		}
 
+		while (global_paused)
+		{
+			// Spin tyres
+			sleep(1);
+		}
+
 		hashes_done = 0;
 		gettimeofday(&tv_start, NULL);
 
@@ -2275,12 +2281,6 @@ static void *miner_thread(void *userdata)
 		{
 			algo_free_all(thr_id);
 			gpus_reset_flag[thr_id] = 0;
-		}
-
-		while (global_paused)
-		{
-			// Spin tyres
-			sleep(1);
 		}
 
 		work.valid_nonces = 0;
